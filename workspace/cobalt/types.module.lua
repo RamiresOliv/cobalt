@@ -273,7 +273,13 @@ exports.mapping = {
 		returns = "nil",
 	},
 	["return"] = {
-		description = "Returns a value in functions.",
+		description = "Returns occasional results from a function or simply finishes a function.",
+		requiredEntries = 1,
+		params = {"any"},
+		returns = "any",
+	},
+	["return-if"] = {
+		description = "Returns occasional values only if the first value is true from a function or simply finishes a function.",
 		requiredEntries = 1,
 		params = {"any"},
 		returns = "any",
