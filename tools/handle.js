@@ -1,5 +1,5 @@
 const express = require("express");
-const { resolve } = require("path");
+const path = require("path");
 const { exec } = require("child_process");
 const fs = require("fs");
 const app = express();
@@ -16,29 +16,39 @@ function sysrun(command) {
     exec(command, (error, stdout, stderr) => {
       if (error) {
         console.error(`Erro: ${error.message}`);
+        fs.appendFileSync(path.resolve(".", "output.log"), error.message);
         resolve(error);
         return;
       }
       if (stderr) {
         console.error(`Stderr: ${stderr}`);
+        fs.appendFileSync(path.resolve(".", "output.log"), stderr);
         resolve(stderr);
         return;
       }
       console.log(`sysrun: ${stdout}`);
+      fs.appendFileSync(path.resolve(".", "output.log"), stdout);
+
       resolve(stdout);
     });
   });
+}
+
+if (fs.existsSync(path.resolve(".", "output.log"))) {
+  fs.writeFileSync(path.resolve(".", "output.log"), "");
+} else {
+  fs.appendFileSync(path.resolve(".", "output.log"), "");
 }
 
 sysrun("echo %cd%");
 console.log(`working in: http://localhost:${port.toString()}`);
 
 function p(...args) {
-  let r = resolve(".");
+  let r = path.resolve(".");
 
   for (const i in args) {
     const v = args[i];
-    r = resolve(r, v);
+    r = path.resolve(r, v);
   }
   return r;
 }
@@ -53,11 +63,11 @@ const solveThings = async (path, childs) => {
   for (const childName in childs) {
     const childData = childs[childName];
     if (childData.isA == "folder") {
-      fs.mkdirSync(resolve(path, childName));
-      await solveThings(resolve(path, childName), childData.content);
+      fs.mkdirSync(path.resolve(path, childName));
+      await solveThings(path.resolve(path, childName), childData.content);
     } else {
       fs.appendFileSync(
-        resolve(path, childName + "." + childData.isA),
+        path.resolve(path, childName + "." + childData.isA),
         childData.content
       );
     }
@@ -73,7 +83,7 @@ app.get("/", (req, res) => {
 app.post("/", async (req, res) => {
   const data = req.body;
 
-  const read = fs.readdirSync(resolve("."));
+  const read = fs.readdirSync(path.resolve("."));
   console.log("cleaning");
   for (const i in read) {
     const child = read[i];
@@ -85,7 +95,8 @@ app.post("/", async (req, res) => {
       child == "node_modules" ||
       child == "package.json" ||
       child == "package-lock.json" ||
-      child == ".gitignore"
+      child == ".gitignore" ||
+      child == ".output.log"
     )
       continue;
     console.log("removing: " + child);
@@ -101,19 +112,14 @@ app.post("/", async (req, res) => {
   }
 
   setTimeout(async () => {
-    if (fs.existsSync(resolve(".", "git_proccess.log"))) {
-      fs.writeFileSync(resolve(".", "git_proccess.log"), "");
-    } else {
-      fs.appendFileSync(resolve(".", "git_proccess.log"), "");
-    }
-    await sysrun("git add . > git_proccess.log");
+    await sysrun("git add . > output.log");
     await sysrun(
-      `echo git commit -m "${data.game.versionName} ${data.game.version}" > git_proccess.log`
+      `git commit -m "${data.game.versionName} ${data.game.version}"`
     );
     await sysrun(
-      `echo git remote add ${repoName} https://github.com/${ownerName}/${repoName} > git_proccess.log`
+      `git remote add ${repoName} https://github.com/${ownerName}/${repoName}`
     );
-    await sysrun(`echo git push ${repoName} --force > git_proccess.log`);
+    await sysrun(`git push ${repoName} --force`);
     return res.send({
       success: true,
       message: "done.",
