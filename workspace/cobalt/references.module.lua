@@ -90,51 +90,35 @@ function resolve_args(v, utils, allowSpecificReturns)
 		end
 
 		local result = {}
-		local stack = {result}  -- Pilha para gerenciar tabelas aninhadas
-		local currentTable = result  -- Tabela atual
+		local stack = {result}
+		local currentTable = result
 
 		for _, value in ipairs(rendered_table) do
-			-- Verifica se o valor é uma string antes de usar gsub
 			if typeof(value) == "string" then
-				-- Conta o número de colchetes de abertura e fechamento
 				local openBrackets = select(2, value:gsub("%[", ""))
 				local closeBrackets = select(2, value:gsub("%]", ""))
 
-				-- Remove os colchetes da string para preservar apenas o conteúdo
 				local cleanValue = value:gsub("%[", ""):gsub("%]", "")
 
-				-- Se houver colchetes de abertura, cria novas sub-tabelas
 				for _ = 1, openBrackets do
 					local newTable = {}
-					table.insert(currentTable, newTable)  -- Adiciona a sub-tabela na tabela atual
-					table.insert(stack, currentTable)  -- Guarda a tabela atual na pilha
-					currentTable = newTable  -- Define a nova sub-tabela como a tabela atual
+					table.insert(currentTable, newTable)
+					table.insert(stack, currentTable)
+					currentTable = newTable
 				end
-
-				-- Adiciona o valor limpo (sem colchetes) à tabela atual
+				
 				if cleanValue ~= "" then
 					local rSA = _local.resolveSpecificArgs(arguments_module:indexArgHandler(cleanValue), utils)
 					if typeof(rSA) == "table" and rSA[1] == "_!!dDecodePSCFail!!_" then return {false, "[sub-function]: " .. tostring(rSA[2])} end
 					table.insert(currentTable, rSA)
-					--local split = string.split(rSA, "=")
-
-					--warn(split)
-
-					--if #split == 2 then
-					--	currentTable[split[1]] = split[2]
-					--else
-					--	table.insert(currentTable, rSA)
-					--end
 				end
-
-				-- Para cada colchete de fechamento, retorna à tabela anterior na pilha
+				
 				for _ = 1, closeBrackets do
 					if #stack > 0 then
 						currentTable = table.remove(stack)
 					end
 				end
 			else
-				-- Adiciona valores que não são strings diretamente à tabela atual
 				table.insert(currentTable, value)
 			end
 		end
@@ -145,23 +129,9 @@ function resolve_args(v, utils, allowSpecificReturns)
 		if string.sub(v, 1, 8) == "_!str!_-" then
 			local hex = string.sub(v, 9)
 			local str = _local.hexToString(hex)
-			--local ffc = bin.temporary.values:FindFirstChild(str)
-			--if ffc and ffc:IsA("StringValue") then
-			--	v = "_!fmt!_-" .. str
-			--else
 			v = str
-			--end
 		elseif string.sub(v, 1, 8) == "_!fmt!_-" then
 			v = string.sub(v, 9)
-		--[[else
-			if string.sub(v, 1, 1) ~= "$" then
-				local ffc = bin.temporary.values:FindFirstChild(v)
-				if ffc and ffc:IsA("StringValue") then
-					v = ffc.Value
-				end
-			else
-				v = string.sub(v, 2)
-			end]]
 		end
 	end
 
@@ -1669,7 +1639,6 @@ refs["require"] = function(args, utils)
 	end
 
 	local toReadFile, file = _local.resolvePath(args[1], utils)
-	print(toReadFile, file)
 	if toReadFile == false or not file:IsA("ValueBase") then
 		return false, "[require] path is not a valid file: '" .. tostring(args[1]) .. "'"
 	end
