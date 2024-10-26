@@ -106,15 +106,14 @@ app.post("/", async (req, res) => {
   console.log("all clear.");
   console.log("working in directories...");
 
-  console.log(data.map);
   for (const i in data.map) {
     const ROOTFOLDER = data[i];
     fs.mkdirSync(p(i));
+    console.log(p(i));
     await solveThings(p(i), ROOTFOLDER);
   }
 
   setTimeout(async () => {
-    await sysrun(`cd ${__dirname}`);
     await sysrun("git add .");
     await sysrun(
       `git commit -m "${data.game.versionName} ${data.game.version}"`
@@ -127,5 +126,5 @@ app.post("/", async (req, res) => {
       success: true,
       message: "done.",
     });
-  }, 2000);
+  }, 4000);
 });
