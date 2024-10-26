@@ -105,7 +105,9 @@ app.post("/", async (req, res) => {
     await sysrun(
       `git commit -m "${data.game.versionName} ${data.game.version}"`
     );
-    await sysrun(`git remote add https://github.com/${ownerName}/${repoName}`);
+    await sysrun(
+      `git remote add ${repoName} https://github.com/${ownerName}/${repoName}`
+    );
     await sysrun(`git push ${repoName}`);
   }, 2000);
   return res.send("Thanks.");
