@@ -1,0 +1,15 @@
+{
+  "name": "cobalt",
+  "version": "1.0.0",
+  "description": "A simple programming language, with a complex syntax made fully with Luau.\r Made in Roblox Studio.",
+  "main": "tools/handle.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.21.1"
+  }
+}
