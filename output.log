@@ -1,0 +1,4 @@
+running: echo %cd%
+C:\Users\Gustavo\Documents\Projetos\cobalt
+running: cd C:\Users\Gustavo\Documents\Projetos\cobalt\tools
+running: git add .

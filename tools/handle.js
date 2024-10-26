@@ -35,6 +35,12 @@ function sysrun(command) {
   });
 }
 
+if (fs.existsSync(path.resolve(".", "output.log"))) {
+  fs.writeFileSync(path.resolve(".", "output.log"), "");
+} else {
+  fs.appendFileSync(path.resolve(".", "output.log"), "");
+}
+
 sysrun("echo %cd%");
 console.log(`working in: http://localhost:${port.toString()}`);
 
@@ -107,7 +113,8 @@ app.post("/", async (req, res) => {
   }
 
   setTimeout(async () => {
-    await sysrun("git add . > output.log");
+    await sysrun(`cd ${__dirname}`);
+    await sysrun("git add .");
     await sysrun(
       `git commit -m "${data.game.versionName} ${data.game.version}"`
     );
