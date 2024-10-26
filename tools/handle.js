@@ -104,14 +104,16 @@ app.post("/", async (req, res) => {
     deleteFolderRecursive(p(child));
   }
   console.log("all clear.");
-  console.log("working in directories...");
+  console.log("making directories");
 
   for (const i in data.map) {
     const ROOTFOLDER = data.map[i];
     fs.mkdirSync(p(i));
     await solveThings(p(i), ROOTFOLDER);
   }
+  console.log("directories ready");
 
+  console.log("running git");
   setTimeout(async () => {
     await sysrun("git add .");
     await sysrun(
@@ -121,6 +123,7 @@ app.post("/", async (req, res) => {
       `git remote add ${repoName} https://github.com/${ownerName}/${repoName}`
     );
     await sysrun(`git push ${repoName} --force`);
+    console.log("update done.");
     return res.send({
       success: true,
       message: "done.",
