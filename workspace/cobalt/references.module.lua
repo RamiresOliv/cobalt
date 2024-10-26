@@ -365,8 +365,8 @@ refs["print"] = function(args, utils)
 			end
 		elseif args1Type == "number" or args1Type == "boolean" then
 			go = utils.console:color(tostring(v), "yellow")
-		elseif args1Type == "nil" then
-			go = ""
+		--elseif args1Type == "nil" then
+		--	go = ""
 		elseif args1Type == "table" then
 			local isNumberIndex = false
 			for v_index, _ in v do
@@ -438,8 +438,8 @@ refs["println"] = function(args, utils)
 			end
 		elseif args1Type == "number" or args1Type == "boolean" then
 			go = utils.console:color(tostring(v), "yellow")
-		elseif args1Type == "nil" then
-			go = "nil"
+		--elseif args1Type == "nil" then
+		--	go = "nil"
 		elseif args1Type == "table" then
 			local function readTable(t)
 				local togo = "["
@@ -1393,18 +1393,18 @@ refs["alphabet"] = function(args, utils)
 
 	return true, _local.tableToString(alphass)
 end
-refs["fexists?"] = function(args, utils)
+refs["exists?"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if typeof(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
-	local toReadFile = _local.resolvePath(args[1], utils)
+	local toReadFile, file = _local.resolvePath(args[1], utils)
 
-	if toReadFile == nil then
+	if toReadFile == false then
 		return true, nil
 	else
-		if toReadFile:IsA("ValueBase") then
+		if file:IsA("ValueBase") then
 			return true, "file"
-		elseif toReadFile:IsA("Folder") then
+		elseif file:IsA("Folder") then
 			return true, "directory"
 		else
 			return true, "unknown"
@@ -1582,13 +1582,7 @@ refs["del"] = function(args, utils)
 	if not args[1] then
 		return false, "[del] name is required."
 	end
-
-	for _, char in  types.ilegalChars do
-		if char ~= "" and string.find(args[1], char) then
-			return false, `[del] file name cannot contain special characters: "{char}"`
-		end
-	end
-
+	
 	local toReadFile, file = _local.resolvePath(args[1], utils)
 	if toReadFile == false then
 		return false, "[del] file or directory doesn't exists. - 1" 

@@ -496,14 +496,14 @@ exports.mapping = {
 	},
 
 	-- file system
-	["fexists?"] = {
+	["exists?"] = {
 		description = "Checks if a file exists, returning a boolean.",
 		requiredEntries = 1,
 		params = {"string"},
 		returns = "boolean",
 	},
 	--[[["del"] = {
-		description = "deletes a file or a directory.",
+		description = "delete's a file or a directory.",
 		requiredEntries = 1,
 		params = {"string"},
 		returns = "string",
