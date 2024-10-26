@@ -2,10 +2,13 @@ const express = require("express");
 const { resolve } = require("path");
 const { exec } = require("child_process");
 const fs = require("fs");
-
 const app = express();
 
-app.listen(1234);
+const ownerName = "RamiresOliv";
+const repoName = "cobalt";
+const port = 1234;
+
+app.listen(port);
 app.use(express.json({ limit: "100gb" }));
 
 function sysrun(command) {
@@ -21,13 +24,14 @@ function sysrun(command) {
         resolve(stderr);
         return;
       }
-      console.log(`Output: ${stdout}`);
+      console.log(`sysrun: ${stdout}`);
       resolve(stdout);
     });
   });
 }
 
 sysrun("echo %cd%");
+console.log(`working in: http://localhost:${port.toString()}`);
 
 function p(...args) {
   let r = resolve(".");
@@ -98,11 +102,11 @@ app.post("/", async (req, res) => {
 
   setTimeout(async () => {
     await sysrun("git add .");
-    console.log(data.game);
     await sysrun(
       `git commit -m "${data.game.versionName} ${data.game.version}"`
     );
-    await sysrun("git push cobalt");
+    await sysrun(`git remote add https://github.com/${ownerName}/${repoName}`);
+    await sysrun(`git push ${repoName}`);
   }, 2000);
   return res.send("Thanks.");
 });
