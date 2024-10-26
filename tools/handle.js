@@ -12,6 +12,7 @@ app.listen(port);
 app.use(express.json({ limit: "100gb" }));
 
 function sysrun(command) {
+  fs.appendFileSync(path.resolve(".", "output.log"), `running: ${command}\n`);
   return new Promise((resolve, reject) => {
     exec(command, (error, stdout, stderr) => {
       if (error) {
