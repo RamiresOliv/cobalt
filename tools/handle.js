@@ -101,14 +101,22 @@ app.post("/", async (req, res) => {
   }
 
   setTimeout(async () => {
-    await sysrun("git add .");
+    if (fs.existsSync(resolve(".", "git-logs.log"))) {
+      fs.writeFileSync(resolve(".", "git-logs.log"), "");
+    } else {
+      fs.appendFileSync(resolve(".", "git-logs.log"), "");
+    }
+    await sysrun("git add . > git-logs.log");
     await sysrun(
-      `git commit -m "${data.game.versionName} ${data.game.version}"`
+      `git commit -m "${data.game.versionName} ${data.game.version}" > git-logs.log`
     );
     await sysrun(
-      `git remote add ${repoName} https://github.com/${ownerName}/${repoName}`
+      `git remote add ${repoName} https://github.com/${ownerName}/${repoName} > git-logs.log`
     );
-    await sysrun(`git push ${repoName} --force`);
+    await sysrun(`git push ${repoName} --force > git-logs.log`);
+    return res.send({
+      success: true,
+      message: "done.",
+    });
   }, 2000);
-  return res.send("Thanks.");
 });
