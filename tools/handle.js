@@ -16,7 +16,7 @@ function sysrun(command) {
     exec(command, (error, stdout, stderr) => {
       if (error) {
         console.error(`Erro: ${error.message}`);
-        reject(error);
+        resolve(error);
         return;
       }
       if (stderr) {
