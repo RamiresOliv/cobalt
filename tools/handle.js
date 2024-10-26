@@ -60,15 +60,16 @@ function deleteFolderRecursive(folderPath) {
   }
 }
 
-const solveThings = async (path, childs) => {
+const solveThings = async (strPath, childs) => {
   for (const childName in childs) {
     const childData = childs[childName];
     if (childData.isA == "folder") {
-      fs.mkdirSync(path.resolve(path, childName));
-      await solveThings(path.resolve(path, childName), childData.content);
+      console.log(path.resolve(strPath, childName));
+      fs.mkdirSync(path.resolve(strPath, childName));
+      await solveThings(path.resolve(strPath, childName), childData.content);
     } else {
       fs.appendFileSync(
-        path.resolve(path, childName + "." + childData.isA),
+        path.resolve(strPath, childName + "." + childData.isA),
         childData.content
       );
     }
