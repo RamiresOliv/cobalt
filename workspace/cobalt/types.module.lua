@@ -190,8 +190,8 @@ exports.mapping = {
 		returns = "any",
 	},
 	["prompt"] = {
-		description = "This functions creates a input for the user write things in it.",
-		requiredEntries = 1,
+		description = "This functions open the input for the user write things in it.",
+		requiredEntries = 0,
 		params = {"string"},
 		returns = "string",
 	},
@@ -202,7 +202,7 @@ exports.mapping = {
 		params = {"any"},
 		returns = "nil",
 	},
-	["print-ln"] = {
+	["println"] = {
 		description = "It does the same as the normal print, but not like the normal one, this prints only one line with all the arguments.",
 		requiredEntries = 0,
 		openEntries = true,
@@ -210,13 +210,13 @@ exports.mapping = {
 		returns = "nil",
 	},
 	["clear"] = {
-		description = "Clears the terminal.",
+		description = "Clear the terminal.",
 		requiredEntries = 0,
 		params = {},
 		returns = "nil",
 	},
 	["for"] = {
-		description = "Repeats the given functions.",
+		description = "Repeats the given functions for every value in a list or repeats until a certain number.",
 		requiredEntries = 1,
 		openEntries = true,
 		params = {"list/number", "function/string"},
@@ -379,7 +379,7 @@ exports.mapping = {
 		returns = "boolean",
 	},
 	["lower?"] = {
-		description = 'Checks if is low cases the full given string.',
+		description = 'checks if is low cases the full given string.',
 		requiredEntries = 1,
 		params = {"string"},
 		returns = "boolean",

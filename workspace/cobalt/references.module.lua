@@ -106,13 +106,13 @@ function resolve_args(v, utils, allowSpecificReturns)
 					table.insert(stack, currentTable)
 					currentTable = newTable
 				end
-				
+
 				if cleanValue ~= "" then
 					local rSA = _local.resolveSpecificArgs(arguments_module:indexArgHandler(cleanValue), utils)
 					if typeof(rSA) == "table" and rSA[1] == "_!!dDecodePSCFail!!_" then return {false, "[sub-function]: " .. tostring(rSA[2])} end
 					table.insert(currentTable, rSA)
 				end
-				
+
 				for _ = 1, closeBrackets do
 					if #stack > 0 then
 						currentTable = table.remove(stack)
@@ -262,8 +262,8 @@ refs["prompt"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if typeof(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
-	if not args[1] or typeof(args[1]) ~= "string" then
-		return false, "[prompt] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+	if not args[1] then
+		args[1] = "script is asking something"
 	end
 
 	local stop = false
@@ -421,7 +421,7 @@ refs["print"] = function(args, utils)
 		utils.console:write(go or "nil")
 	end
 end
-refs["print-ln"] = function(args, utils)
+refs["println"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if typeof(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
@@ -673,7 +673,7 @@ end
 refs["return-if"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if typeof(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
-	
+
 	local func = table.remove(args, 1)
 	if typeof(func) ~= "boolean" then
 		return false, "[return-if] expected a boolean but received [1]: '" .. _local.typeof(func) .. "'"
@@ -684,7 +684,7 @@ refs["return-if"] = function(args, utils)
 		togo = {"_-!@!_-!-return-and-stop-rn!"}
 		table.insert(togo, args[1])
 	end
-	
+
 	return true, togo
 end
 refs["not"] = function(args, utils)
@@ -1246,12 +1246,12 @@ refs["sort"] = function(args, utils)
 	if typeof(args[2]) ~= "string" then
 		return false, "[sort] expected a function name as a string but received [2]: '" .. _local.typeof(args[2]) .. "'"
 	end
-	
+
 	local toSortList = args[1]
 	local sortedList = {}
 	-- [1,3,2]: [1,2,3]
 	-- local returns = require(p.index):run(`({args[2]} {v} {args[1][i+1]})`, nil, utils.console, true)
-	
+
 	for i = 1, #toSortList - 1 do
 		for j = i + 1, #toSortList do
 			local v1 = toSortList[i]
@@ -1264,7 +1264,7 @@ refs["sort"] = function(args, utils)
 				v2 = _local.tableToString(v2)
 			end
 			local returns = require(p.index):run(`({args[2]} {v1} {v2})`, nil, utils.console, true)
-			
+
 			if returns[1] == false then
 				return false, "[sort] [2] function: "  .. (returns[2] or "")
 			end
@@ -1277,7 +1277,7 @@ refs["sort"] = function(args, utils)
 
 				return false, "[sort] [1][" .. tostring(i) .. `] function did not return a boolean, function returned: ({args[2]} {v1} {v2}): '{addition}'`
 			end
-			
+
 			if returns[2] == true then
 				local temp = toSortList[i]
 				toSortList[i] = toSortList[j]
@@ -1285,7 +1285,7 @@ refs["sort"] = function(args, utils)
 			end
 		end
 	end
-	
+
 	for i, v in ipairs(toSortList) do
 		table.insert(sortedList, v)
 	end
@@ -2222,25 +2222,6 @@ refs["inv"] = function(args, utils)
 		end
 
 		numbers[i] = v * -1
-	end
-
-	return true, numbers
-end
-refs["neg"] = function(args, utils)
-	args = _local.resolveArgs(args, utils)
-	if typeof(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
-	local numbers = {}
-
-	for i, v in args do
-		if typeof(v) ~= "number" then
-			return false, "[neg] expected a number but received [".. tostring(i) .."]: '" .. _local.typeof(v) .. "'"
-		end
-
-		if v <= 0 then
-			numbers[i] = v
-		else
-			numbers[i] = -args[1]
-		end
 	end
 
 	return true, numbers
