@@ -35,12 +35,6 @@ function sysrun(command) {
   });
 }
 
-if (fs.existsSync(path.resolve(".", "output.log"))) {
-  fs.writeFileSync(path.resolve(".", "output.log"), "");
-} else {
-  fs.appendFileSync(path.resolve(".", "output.log"), "");
-}
-
 sysrun("echo %cd%");
 console.log(`working in: http://localhost:${port.toString()}`);
 
