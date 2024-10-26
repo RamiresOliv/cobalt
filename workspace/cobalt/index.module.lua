@@ -189,10 +189,7 @@ function me:run(code, rawArgs, console, mr)
 				})
 				
 				-- am losing my head.
-				if data ~= nil and typeof(data) == "table" and data[1] == "_-!@!_-!-return-and-stop-rn!" then
-					warn("REQUESTED TO STOP NOW!")
-					return {true, data[2], nil, true}
-				end
+				if data ~= nil and typeof(data) == "table" and data[1] == "_-!@!_-!-return-and-stop-rn!" then return {true, data[2], nil, true} end
 				if data ~= nil and typeof(data) == "table" and data[1] == "_-!@!_-!-continue-skip-this-thing-rn!"
 					or data ~= nil and typeof(data) == "table" and data[1] == "_-!@!_-!-break-and-stop-rn!" then return {true, nil, nil, true} end
 				if state == false then return {false, data} end
@@ -220,18 +217,13 @@ function me:run(code, rawArgs, console, mr)
 
 					local r, returns = me:run(c, nil, console, true)
 					
-					warn(returns)
-					warn(r)
 					if r[1] == false then
 						console:write("[" .. base_funcName .. "] Error origin in function '" .. base_funcName .. "': " .. tostring(r[2] or "unknown"), "red")
 						return {false, r[2]}
 					end
 					
-					isReturnFound = false
-					if r[1]
-					
 					if mr == true then
-						return {true, arguments:indexArgHandler(r[2], rawArgs), isReturnFound}
+						return {true, arguments:indexArgHandler(r[2], rawArgs), r[4]}
 					end
 				end
 
@@ -239,11 +231,13 @@ function me:run(code, rawArgs, console, mr)
 				if typeof(decode) == "table" then
 					for i, c in decode.commands do
 						get = run(c)
-						warn(get)
+						if get[3] == true then break end
 						if typeof(get) == "table" and get[1] == false then break end
 					end
 				else
 					get = run(tostring(decode.commands))
+					if get[3] == true then break end
+					if typeof(get) == "table" and get[1] == false then break end
 				end
 
 				if get ~= nil then

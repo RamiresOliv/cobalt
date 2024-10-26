@@ -274,13 +274,13 @@ exports.mapping = {
 	},
 	["return"] = {
 		description = "Returns occasional results from a function or simply finishes a function.",
-		requiredEntries = 1,
+		requiredEntries = 0,
 		params = {"any"},
 		returns = "any",
 	},
 	["return-if"] = {
 		description = "Returns occasional values only if the first value is true from a function or simply finishes a function.",
-		requiredEntries = 1,
+		requiredEntries = 0,
 		params = {"any"},
 		returns = "any",
 	},

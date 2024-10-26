@@ -696,10 +696,7 @@ refs["return"] = function(args, utils)
 
 	if typeof(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 	local togo = {"_-!@!_-!-return-and-stop-rn!"}
-
-	for i, v in args do
-		table.insert(togo, v)
-	end
+	table.insert(togo, args[1])
 
 	return true, togo
 end
@@ -708,7 +705,6 @@ refs["return-if"] = function(args, utils)
 	if typeof(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 	
 	local func = table.remove(args, 1)
-	warn(func)
 	if typeof(func) ~= "boolean" then
 		return false, "[return-if] expected a boolean but received [1]: '" .. _local.typeof(func) .. "'"
 	end
@@ -716,12 +712,9 @@ refs["return-if"] = function(args, utils)
 	local togo = nil
 	if func == true then
 		togo = {"_-!@!_-!-return-and-stop-rn!"}
-		for i, v in args do
-			table.insert(togo, v)
-		end
+		table.insert(togo, args[1])
 	end
 	
-	print(togo)
 	return true, togo
 end
 refs["not"] = function(args, utils)
