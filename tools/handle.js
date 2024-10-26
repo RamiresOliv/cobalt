@@ -97,7 +97,7 @@ app.post("/", async (req, res) => {
       child == "package.json" ||
       child == "package-lock.json" ||
       child == ".gitignore" ||
-      child == ".output.log"
+      child == "output.log"
     )
       continue;
     console.log("removing: " + child);
