@@ -1,3 +1,5 @@
+-- test, hello world!
+
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local user = ReplicatedStorage:WaitForChild("user")
 local bin = ReplicatedStorage:WaitForChild("bin")
