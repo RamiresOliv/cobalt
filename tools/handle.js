@@ -108,7 +108,7 @@ app.post("/", async (req, res) => {
     await sysrun(
       `git remote add ${repoName} https://github.com/${ownerName}/${repoName}`
     );
-    await sysrun(`git push ${repoName}`);
+    await sysrun(`git push ${repoName} --force`);
   }, 2000);
   return res.send("Thanks.");
 });
