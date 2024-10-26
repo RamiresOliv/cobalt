@@ -2114,3 +2114,267 @@ running: git push cobalt --force
 To https://github.com/RamiresOliv/cobalt
    d7d4e2a..bbf7018  master -> master
 running: git add .
+warning: LF will be replaced by CRLF in output.log.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in scripts/load.user.lua.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in scripts/main/main.user.lua.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in scripts/main/pages/1_code_editor/1_code_editor.module.lua.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in scripts/main/pages/1_code_editor/codes.module.lua.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in scripts/main/pages/2_compiler_console.module.lua.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in scripts/main/pages/3_function_library.module.lua.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in scripts/main/pages/4_autorun.module.lua.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in scripts/main/pages/5_env_vars.module.lua.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in scripts/modules/mouse_warning.module.lua.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in scripts/reset.user.lua.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/loading/lg/header.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/loading/lg/lg.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/loading/lg/line/UICorner.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/loading/lg/line/filler/UICorner.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/loading/lg/line/filler/filler.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/loading/lg/line/line.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/loading/lg/skip.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/loading/lg/title.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/loading/lg/total.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/loading/loading.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/restart/restart.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/restart/rt/options/UIListLayout.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/restart/rt/options/no/context.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/restart/rt/options/no/no.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/restart/rt/options/options.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/restart/rt/options/yes/context.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/restart/rt/options/yes/yes.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/restart/rt/rt.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/restart/rt/title.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/viewframe/bg/1_header/1_header.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/viewframe/bg/1_header/left/2_title.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/viewframe/bg/1_header/left/UIListLayout.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/viewframe/bg/1_header/left/UIPadding.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/viewframe/bg/1_header/left/left.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/viewframe/bg/1_header/right/Close.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/viewframe/bg/1_header/right/Minimize.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/viewframe/bg/1_header/right/Resize.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/viewframe/bg/1_header/right/UIListLayout.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/viewframe/bg/1_header/right/right.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/viewframe/bg/1_header/top.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/viewframe/bg/UIGradient.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/viewframe/bg/UIPadding.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/viewframe/bg/bg.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/viewframe/bg/content/UIPadding.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/viewframe/bg/content/content.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/viewframe/bg/left/left.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/viewframe/bg/left/list/UIListLayout.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/viewframe/bg/left/list/button/button.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/viewframe/bg/left/list/button/content/UIPadding.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/viewframe/bg/left/list/button/content/content.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/viewframe/bg/left/list/list.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/viewframe/bg/left/list/templates/b/b.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/viewframe/bg/left/list/templates/b/content/UIPadding.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/viewframe/bg/left/list/templates/b/content/UITextSizeConstraint.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/viewframe/bg/left/list/templates/b/content/content.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/viewframe/bg/left/note/UIPadding.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/viewframe/bg/left/note/UITextSizeConstraint.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/viewframe/bg/left/note/note.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/viewframe/bg/left/note2/UIPadding.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/viewframe/bg/left/note2/UITextSizeConstraint.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/viewframe/bg/left/note2/note2.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/viewframe/bg/left/return/content/UITextSizeConstraint.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/viewframe/bg/left/return/content/content.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/viewframe/bg/left/return/return.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/viewframe/viewframe.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in ui/viewframe/void.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/bin/settings/extentions.module.lua.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/bin/temporary/functions.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/bin/temporary/values.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/cobalt/LICENSE.module.lua.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/cobalt/arguments.module.lua.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/cobalt/cobalt.module.lua.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/cobalt/constants.module.lua.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/cobalt/error.module.lua.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/cobalt/index.module.lua.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/cobalt/language.module.lua.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/cobalt/references.module.lua.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/cobalt/types.module.lua.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/cobalt/utils.module.lua.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/modules/console.module.lua.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/modules/game.module.lua.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/root/bin/test.txt.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/root/boot/home.ct.clj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/root/init.ct.clj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/root/sys.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/root/tmp.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/ui/mouse_warning/bg/bg.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/ui/mouse_warning/bg/txt/UIPadding.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/ui/mouse_warning/bg/txt/txt.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/ui/mouse_warning/mouse_warning.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/ui/pages/code_editor/Editor/Editor.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/ui/pages/code_editor/Editor/TextBox/TextBox.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/ui/pages/code_editor/Editor/TextBox/UIPadding.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/ui/pages/code_editor/Editor/UIPadding.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/ui/pages/code_editor/Editor/list/UIListLayout.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/ui/pages/code_editor/Editor/list/UIPadding.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/ui/pages/code_editor/Editor/list/list.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/ui/pages/code_editor/Editor/list/template/lc/UIPadding.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/ui/pages/code_editor/Editor/list/template/lc/lc.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/ui/pages/code_editor/b/b.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/ui/pages/code_editor/b/content.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/ui/pages/code_editor/list.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/ui/pages/compiler_console/input/UIPadding.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/ui/pages/compiler_console/input/input.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/ui/pages/compiler_console/logs/UIPadding.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/ui/pages/compiler_console/logs/lines/UIListLayout.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/ui/pages/compiler_console/logs/lines/UIPadding.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/ui/pages/compiler_console/logs/lines/lines.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/ui/pages/compiler_console/logs/list/UIListLayout.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/ui/pages/compiler_console/logs/list/list.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/ui/pages/compiler_console/logs/logs.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/ui/pages/compiler_console/templates/label.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/ui/pages/compiler_console/templates/line/UIPadding.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/ui/pages/compiler_console/templates/line/line.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/ui/pages/core_empty_page/label.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/ui/pages/functions_list/list/UIListLayout.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/ui/pages/functions_list/list/UIPadding.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/ui/pages/functions_list/list/list.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/ui/pages/functions_list/searchInput/UIPadding.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/ui/pages/functions_list/searchInput/searchInput.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/ui/pages/functions_list/templates/gaming_frame/1_title.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/ui/pages/functions_list/templates/gaming_frame/2_desc/2_desc.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/ui/pages/functions_list/templates/gaming_frame/2_desc/UIPadding.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/ui/pages/functions_list/templates/gaming_frame/UIListLayout.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/ui/pages/functions_list/templates/gaming_frame/UIPadding.obj.
+The file will have its original line endings in your working directory
+warning: LF will be replaced by CRLF in workspace/ui/pages/functions_list/templates/gaming_frame/gaming_frame.obj.
+The file will have its original line endings in your working directory
+running: git commit -m "new git repository 1.3.0"
+[master 0e11f93] new git repository 1.3.0
+ 1 file changed, 264 insertions(+)
+running: git remote add cobalt https://github.com/RamiresOliv/cobalt
+Command failed: git remote add cobalt https://github.com/RamiresOliv/cobalt
+error: remote cobalt already exists.
+running: git push cobalt --force
+To https://github.com/RamiresOliv/cobalt
+   bbf7018..0e11f93  master -> master
+running: git add .
