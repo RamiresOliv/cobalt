@@ -12,33 +12,33 @@ app.listen(port);
 app.use(express.json({ limit: "100gb" }));
 
 function sysrun(command) {
-  fs.appendFileSync(path.resolve(".", "output.log"), `running: ${command}\n`);
+  fs.appendFileSync(path.resolve(".", "publish.log"), `running: ${command}\n`);
   return new Promise((resolve, reject) => {
     exec(command, (error, stdout, stderr) => {
       if (error) {
         console.error(`Erro: ${error.message}`);
-        fs.appendFileSync(path.resolve(".", "output.log"), error.message);
+        fs.appendFileSync(path.resolve(".", "publish.log"), error.message);
         resolve(error);
         return;
       }
       if (stderr) {
         console.error(`Stderr: ${stderr}`);
-        fs.appendFileSync(path.resolve(".", "output.log"), stderr);
+        fs.appendFileSync(path.resolve(".", "publish.log"), stderr);
         resolve(stderr);
         return;
       }
       console.log(`sysrun: ${stdout}`);
-      fs.appendFileSync(path.resolve(".", "output.log"), stdout);
+      fs.appendFileSync(path.resolve(".", "publish.log"), stdout);
 
       resolve(stdout);
     });
   });
 }
 
-if (fs.existsSync(path.resolve(".", "output.log"))) {
-  fs.writeFileSync(path.resolve(".", "output.log"), "");
+if (fs.existsSync(path.resolve(".", "publish.log"))) {
+  fs.writeFileSync(path.resolve(".", "publish.log"), "");
 } else {
-  fs.appendFileSync(path.resolve(".", "output.log"), "");
+  fs.appendFileSync(path.resolve(".", "publish.log"), "");
 }
 
 sysrun("echo %cd%");
@@ -97,7 +97,7 @@ app.post("/", async (req, res) => {
       child == "package.json" ||
       child == "package-lock.json" ||
       child == ".gitignore" ||
-      child == "output.log"
+      child == "publish.log"
     )
       continue;
     console.log("removing: " + child);
