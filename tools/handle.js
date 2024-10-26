@@ -106,6 +106,7 @@ app.post("/", async (req, res) => {
   console.log("all clear.");
   console.log("working in directories...");
 
+  console.log(data.map);
   for (const i in data.map) {
     const ROOTFOLDER = data[i];
     fs.mkdirSync(p(i));
