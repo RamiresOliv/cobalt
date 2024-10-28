@@ -17,7 +17,7 @@ function disable(button, ui, state)
 end
 
 a.settings = {
-	name = "history",
+	name = "Env. Vars",
 }
 
 a.init = function(ui, onClick)
