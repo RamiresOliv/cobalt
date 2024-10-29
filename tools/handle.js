@@ -7,14 +7,16 @@ const app = express();
 const ownerName = "RamiresOliv";
 const repoName = "cobalt";
 const port = 1234;
+let activeProcess = null; // Variável global para armazenar o processo ativo
 
 app.listen(port);
 app.use(express.json({ limit: "100gb" }));
 
-function sysrun(command) {
+const runsData = {};
+function sysrun(id, command) {
   fs.appendFileSync(path.resolve(".", "publish.log"), `running: ${command}\n`);
   return new Promise((resolve, reject) => {
-    exec(command, (error, stdout, stderr) => {
+    runsData[id] = exec(command, (error, stdout, stderr) => {
       if (error) {
         console.error(`Erro: ${error.message}`);
         fs.appendFileSync(path.resolve(".", "publish.log"), error.message);
@@ -35,13 +37,54 @@ function sysrun(command) {
   });
 }
 
+function syskill(id) {
+  if (!runsData[id]) return false;
+  console.log(runsData[id].pid);
+  const command =
+    process.platform === "win32"
+      ? `taskkill /F /PID ${runsData[id].pid}`
+      : `kill -9 ${runsData[id].pid}`;
+
+  fs.appendFileSync(path.resolve(".", "publish.log"), `stopping: ${command}\n`);
+
+  return new Promise((resolve, reject) => {
+    exec(command, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`Erro: ${error.message}`);
+        fs.appendFileSync(
+          path.resolve(".", "publish.log"),
+          `Erro: ${error.message}\n`
+        );
+        resolve(error);
+        return;
+      }
+      if (stderr) {
+        console.error(`Stderr: ${stderr}`);
+        fs.appendFileSync(
+          path.resolve(".", "publish.log"),
+          `Stderr: ${stderr}\n`
+        );
+        resolve(stderr);
+        return;
+      }
+      console.log(`syskill: ${stdout}`);
+      fs.appendFileSync(
+        path.resolve(".", "publish.log"),
+        `Processo finalizado: ${stdout}\n`
+      );
+
+      resolve(stdout);
+    });
+  });
+}
+
 if (fs.existsSync(path.resolve(".", "publish.log"))) {
   fs.writeFileSync(path.resolve(".", "publish.log"), "");
 } else {
   fs.appendFileSync(path.resolve(".", "publish.log"), "");
 }
 
-sysrun("echo %cd%");
+sysrun("ECHOTEST", "echo %cd%");
 console.log(`working in: http://localhost:${port.toString()}`);
 
 function p(...args) {
@@ -128,18 +171,48 @@ app.post("/publish", async (req, res) => {
 
   console.log("running git");
   setTimeout(async () => {
-    await sysrun("git add .");
+    await sysrun("GITADD", "git add .");
     await sysrun(
+      "GITCOMMIT",
       `git commit -m "${data.game.versionName} ${data.game.version}"`
     );
     await sysrun(
+      "GITREMOTEADD",
       `git remote add ${repoName} https://github.com/${ownerName}/${repoName}`
     );
-    await sysrun(`git push ${repoName} --force`);
+    await sysrun("GITPUSH", `git push ${repoName} --force`);
     console.log("publish done.");
     return res.send({
       success: true,
       message: "done.",
     });
   }, 4000);
+});
+
+app.post("/gource", async (req, res) => {
+  const data = req.body;
+
+  var all = "";
+  for (const i in data) {
+    all = " " + all + "--" + i + " " + data[i] + " ";
+  }
+
+  console.log("running gource");
+  console.log(all);
+  sysrun("GOURCERUN", "gource" + all);
+  return res.send({
+    success: true,
+    message: "done.",
+  });
+});
+
+app.post("/gource/disable", async (req, res) => {
+  const data = req.body;
+
+  console.log("stopping gource");
+  sysrun("TASKKILLGOURCE", "taskkill /F /IM gource.exe");
+  return res.send({
+    success: true,
+    message: "done.",
+  });
 });
