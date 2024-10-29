@@ -68,10 +68,10 @@ const solveThings = async (strPath, childs) => {
       await solveThings(path.resolve(strPath, childName), childData.content);
     } else {
       var go = "";
-      console.log(childData.isA);
-      if (childData.isA != "") {
+      if (childData.isA.length != 0) {
         go = "." + childData.IsA;
       }
+      console.log(go);
       fs.appendFileSync(
         path.resolve(strPath, childName + go),
         childData.content
