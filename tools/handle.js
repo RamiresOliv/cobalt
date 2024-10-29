@@ -71,7 +71,6 @@ const solveThings = async (strPath, childs) => {
       if (childData.isA) {
         go = "." + childData.isA;
       }
-      console.log(go);
       fs.appendFileSync(
         path.resolve(strPath, childName + go),
         childData.content
@@ -119,10 +118,6 @@ app.post("/", async (req, res) => {
   console.log("directories ready");
 
   console.log("running git");
-  /*return res.send({
-    success: true,
-    message: "done.",
-  });*/
   setTimeout(async () => {
     await sysrun("git add .");
     await sysrun(
