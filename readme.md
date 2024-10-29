@@ -21,11 +21,12 @@ Made in Roblox Studio.
 
 https://www.roblox.com/games/97398140739060/Cobalt
 
-You only need Roblox installed in your computer. After that, you can "run" cobalt :D
-Only by entering in the experience and giving a like, helps me a lot!
-This code is open-source and free to use, but it's protected by a [MIT license](./LICENSE).
-This language at any circumstance would **never be sold by any price**
-You can't pay for cobalt use or even sell in any marketplace.
+You only need Roblox installed in your computer. After that, you can "run" cobalt :D<br>
+Only by entering in the experience and giving a like, helps me a lot!<br>
+This code is open-source and free to use, but it's protected by a [MIT license](./LICENSE).<br>
+This language at any circumstance would **never be sold by any price**<br>
+You can't pay for cobalt use or even sell in any marketplace.<br>
+**As the owner of this programming language, do not create any copy of Cobalt in any place without my permission.**
 
 This all it's a project which I am doing solo. So please, if you liked, make sure to share :)
 
