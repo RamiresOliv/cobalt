@@ -1,7 +1,7 @@
 local exports = {}
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local user = ReplicatedStorage:WaitForChild("user")
-local values = user:WaitForChild("values")
+local global = ReplicatedStorage:WaitForChild("global")
+local values = global:WaitForChild("values")
 
 exports.mapping = {
 	["version"] = {

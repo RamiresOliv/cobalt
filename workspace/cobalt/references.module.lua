@@ -1,9 +1,9 @@
 -- test, hello world!
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local user = ReplicatedStorage:WaitForChild("user")
-local bin = ReplicatedStorage:WaitForChild("bin")
-local values = user:WaitForChild("values")
+local global = ReplicatedStorage:WaitForChild("global")
+local temporary = ReplicatedStorage:WaitForChild("temporary")
+local values = global:WaitForChild("values")
 local p = script.Parent
 local _local = {}
 local refs = {
@@ -140,7 +140,7 @@ function resolve_args(v, utils, allowSpecificReturns)
 	end
 
 	if typeof(v) == "string" then
-		for _, v_var in pairs(bin.temporary.values:GetChildren()) do
+		for _, v_var in pairs(temporary.values:GetChildren()) do
 			if v_var:IsA("StringValue") then
 				local togoV = v_var.Value
 
@@ -238,7 +238,7 @@ refs["var"] = function(args, utils)
 		return false, "[var] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
 	end
 
-	local ffc = bin.temporary.values:FindFirstChild(tostring(args[1]))
+	local ffc = temporary.values:FindFirstChild(tostring(args[1]))
 	if ffc and ffc:IsA("StringValue") then
 		if typeof(args[2]) == "table" then
 			ffc.Value = game:GetService("HttpService"):JSONEncode(args[2])--:gsub('"', "")
@@ -246,7 +246,7 @@ refs["var"] = function(args, utils)
 			ffc.Value = tostring(args[2])
 		end
 	else
-		local variable = Instance.new("StringValue", bin.temporary.values)
+		local variable = Instance.new("StringValue", temporary.values)
 		variable.Name = tostring(args[1])
 
 		if typeof(args[2]) == "table" then
@@ -337,7 +337,7 @@ refs["get"] = function(args, utils)
 		return false, "[get] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
 	end
 
-	local ffc = bin.temporary.values:FindFirstChild(tostring(args[1]))
+	local ffc = temporary.values:FindFirstChild(tostring(args[1]))
 	local args = nil
 	if ffc and ffc:IsA("StringValue") then
 		args = ffc.Value
@@ -565,7 +565,7 @@ refs["function"] = function(rawArgs, utils)
 		end
 	end
 
-	local variable = Instance.new("StringValue", bin.temporary.functions)
+	local variable = Instance.new("StringValue", temporary.functions)
 	variable.Name = tostring(func_name)
 	variable.Value = game:GetService("HttpService"):JSONEncode({
 		arguments = args,

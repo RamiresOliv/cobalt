@@ -6,7 +6,7 @@ local GuiService = game:GetService("GuiService")
 local StarterGui = game:GetService("StarterGui")
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
-local user = ReplicatedStorage:WaitForChild("user")
+local global = ReplicatedStorage:WaitForChild("global")
 local gui = StarterGui.restart:Clone()
 
 local mouse_warning = require(script.Parent.modules.mouse_warning)
@@ -81,10 +81,10 @@ function doit()
 	restarting = true
 	wait(.4)
 	script.Parent.main.Enabled = false
-	for i, v in pairs(ReplicatedStorage.bin.temporary.functions:GetChildren()) do
+	for i, v in pairs(ReplicatedStorage.temporary.functions:GetChildren()) do
 		v:Destroy()
 	end
-	for i, v in pairs(ReplicatedStorage.bin.temporary.values:GetChildren()) do
+	for i, v in pairs(ReplicatedStorage.temporary.values:GetChildren()) do
 		v:Destroy()
 	end
 	mouse_warning.spawn(gui, "cobalt halted")

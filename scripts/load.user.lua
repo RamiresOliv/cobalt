@@ -8,7 +8,7 @@ local GuiService = game:GetService("GuiService")
 local StarterGui = game:GetService("StarterGui")
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
-local user = ReplicatedStorage:WaitForChild("user")
+local global = ReplicatedStorage:WaitForChild("global")
 local gui = StarterGui.loading:Clone()
 
 local toload = {}

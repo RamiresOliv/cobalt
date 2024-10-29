@@ -9,8 +9,8 @@ local StarterGui = game:GetService("StarterGui")
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local uiI = ReplicatedStorage:WaitForChild("ui")
-local user = ReplicatedStorage:WaitForChild("user")
-local values = user:WaitForChild("values")
+local global = ReplicatedStorage:WaitForChild("global")
+local values = global:WaitForChild("values")
 local gui = StarterGui.viewframe:Clone()
 
 local buttonsObjs = {}

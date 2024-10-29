@@ -1,7 +1,7 @@
 local me = {}
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local bin = ReplicatedStorage:WaitForChild("bin")
+local temporaryFolder = ReplicatedStorage:WaitForChild("temporary")
 local lp = Players.LocalPlayer
 local p = script.Parent
 local arguments = require(p.arguments)
@@ -13,12 +13,12 @@ local cd = ReplicatedStorage:WaitForChild("root")
 local temporary = {}
 
 temporary.clear = function()
-	for i, v in pairs(bin.temporary.functions:GetChildren()) do
+	for i, v in pairs(temporaryFolder.functions:GetChildren()) do
 		if v:IsA("StringValue") then
 			v:Destroy()
 		end
 	end
-	for i, v in pairs(bin.temporary.values:GetChildren()) do
+	for i, v in pairs(temporaryFolder.values:GetChildren()) do
 		if v:IsA("StringValue") then
 			v:Destroy()
 		end
@@ -101,7 +101,7 @@ function me:run(code, rawArgs, console, mr)
 
 			if not base_funcName then return {false, 'Incomplete statement.'} end
 
-			local scriptFuncFound = bin.temporary.functions:FindFirstChild(base_funcName)
+			local scriptFuncFound = temporaryFolder.functions:FindFirstChild(base_funcName)
 			local functionData = types.mapping[base_funcName]
 
 			if scriptFuncFound == nil and functionData == nil then return {false, "unknown syntax/function: '" .. (base_funcName or "nil") .. "'"} end

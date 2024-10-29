@@ -85,7 +85,7 @@ app.get("/", (req, res) => {
     message: "Hello, send me the things fella.",
   });
 });
-app.post("/", async (req, res) => {
+app.post("/update", async (req, res) => {
   const data = req.body;
 
   const read = fs.readdirSync(path.resolve("."));
@@ -116,6 +116,15 @@ app.post("/", async (req, res) => {
     await solveThings(p(i), ROOTFOLDER);
   }
   console.log("directories ready");
+  console.log("update done");
+  return res.send({
+    success: true,
+    message: "done.",
+  });
+});
+
+app.post("/publish", async (req, res) => {
+  const data = req.body;
 
   console.log("running git");
   setTimeout(async () => {
@@ -127,7 +136,7 @@ app.post("/", async (req, res) => {
       `git remote add ${repoName} https://github.com/${ownerName}/${repoName}`
     );
     await sysrun(`git push ${repoName} --force`);
-    console.log("update done.");
+    console.log("publish done.");
     return res.send({
       success: true,
       message: "done.",

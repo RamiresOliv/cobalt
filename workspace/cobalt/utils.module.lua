@@ -1,7 +1,7 @@
 local _module = {}
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local user = ReplicatedStorage:WaitForChild("user")
-local values = user:WaitForChild("values")
+local global = ReplicatedStorage:WaitForChild("global")
+local values = global:WaitForChild("values")
 
 _module.lerp = function(a: number, b: number, t: number)
 	return a + (b - a) * t

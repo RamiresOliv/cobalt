@@ -45,7 +45,7 @@ return {
 (print (format "Done. Result: {1}" (round {result})))
 ]],[[(for (readdir root) i v
   (if (ends? {v} /)
-      (print-ln "{v}:" (readdir (format "root/{1}" (crop {v} 1 -2))))
+      (println "{v}:" (readdir (format "root/{1}" (crop {v} 1 -2))))
   )
 )
 ]],[[(print "sup.")

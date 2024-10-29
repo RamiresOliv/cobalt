@@ -1,6 +1,6 @@
 local args_handler = {}
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local bin = ReplicatedStorage:WaitForChild("bin")
+local temporary = ReplicatedStorage:WaitForChild("temporary")
 
 local utils = require(script.Parent.utils)
 
@@ -37,7 +37,7 @@ function args_handler:indexArgHandler(v: string, arguments: {any}?)
 	elseif v == "nil" then
 		v = nil
 	else
-		for _, v_var in pairs(bin.temporary.values:GetChildren()) do
+		for _, v_var in pairs(temporary.values:GetChildren()) do
 			if v_var:IsA("StringValue") then
 				local togoV = v_var.Value
 

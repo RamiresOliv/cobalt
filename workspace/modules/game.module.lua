@@ -1,6 +1,6 @@
 local g = {}
 
-g.version = "1.3.2"
-g.versionName = "git repo + new functions + bugs fix"
+g.version = "1.3.3"
+g.versionName = "git module fix + cobalt directories reworks"
 
 return g
