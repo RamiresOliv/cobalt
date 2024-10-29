@@ -67,7 +67,7 @@ const solveThings = async (strPath, childs) => {
       fs.mkdirSync(path.resolve(strPath, childName));
       await solveThings(path.resolve(strPath, childName), childData.content);
     } else {
-      var go = childData.isA;
+      var go = "";
       console.log(childData.isA);
       if (childData.isA != "") {
         go = "." + childData.IsA;
