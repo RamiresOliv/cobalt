@@ -67,8 +67,13 @@ const solveThings = async (strPath, childs) => {
       fs.mkdirSync(path.resolve(strPath, childName));
       await solveThings(path.resolve(strPath, childName), childData.content);
     } else {
+      var go = childData.isA;
+      console.log(childData.isA);
+      if (childData.isA != "") {
+        go = "." + childData.IsA;
+      }
       fs.appendFileSync(
-        path.resolve(strPath, childName + "." + childData.isA),
+        path.resolve(strPath, childName + go),
         childData.content
       );
     }
