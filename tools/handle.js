@@ -68,9 +68,8 @@ const solveThings = async (strPath, childs) => {
       await solveThings(path.resolve(strPath, childName), childData.content);
     } else {
       var go = "";
-      console.log(childData.isA.length);
-      if (childData.isA.length != 0) {
-        go = "." + childData.IsA;
+      if (childData.isA) {
+        go = "." + childData.isA;
       }
       console.log(go);
       fs.appendFileSync(
@@ -120,6 +119,10 @@ app.post("/", async (req, res) => {
   console.log("directories ready");
 
   console.log("running git");
+  /*return res.send({
+    success: true,
+    message: "done.",
+  });*/
   setTimeout(async () => {
     await sysrun("git add .");
     await sysrun(
