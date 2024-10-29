@@ -68,6 +68,7 @@ const solveThings = async (strPath, childs) => {
       await solveThings(path.resolve(strPath, childName), childData.content);
     } else {
       var go = "";
+      console.log(childData.isA.length);
       if (childData.isA.length != 0) {
         go = "." + childData.IsA;
       }
