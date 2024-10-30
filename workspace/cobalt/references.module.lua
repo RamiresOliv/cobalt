@@ -824,6 +824,18 @@ refs["<="] = function(args, utils)
 	return true, r
 end
 refs["str"] = function(args, utils)
+	args = _local.resolveArgs(args, utils)
+	if typeof(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
+	
+	local toGo = _local.concat(args, " ")
+	if toGo:sub(1, 1) == '"' and toGo:sub(-1) == '"' then
+		toGo = toGo:sub(2, -2)
+	end
+
+	local hex = _local.stringToHex(toGo)
+	return true, "_!str!_-" .. tostring(hex)
+end
+refs["str!"] = function(args, utils)
 	local toGo = _local.concat(args, " ")
 	if toGo:sub(1, 1) == '"' and toGo:sub(-1) == '"' then
 		toGo = toGo:sub(2, -2)

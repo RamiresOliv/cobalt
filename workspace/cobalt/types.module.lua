@@ -317,7 +317,14 @@ exports.mapping = {
 
 	-- stringing
 	["str"] = {
-		description = "Returns a string with the given values.",
+		description = "Returns a single string with by given values.",
+		requiredEntries = 1,
+		openEntries = true,
+		params = {"any"},
+		returns = "string",
+	},
+	["str!"] = {
+		description = "Forces a string return by the given values.",
 		requiredEntries = 1,
 		openEntries = true,
 		params = {"any"},
