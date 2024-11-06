@@ -546,7 +546,7 @@ exports.mapping = {
 		returns = "string",
 	},
 	["mkdir"] = {
-		description = "Creates a new dir.",
+		description = "Creates a dir.",
 		requiredEntries = 2,
 		params = {"string", "string"},
 		returns = "string",
