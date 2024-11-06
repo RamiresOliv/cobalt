@@ -105,9 +105,14 @@ _module.getFullPath = function(instance: Instance, utils)
 	local lastParent = instance.Parent
 	local rootFound = false
 	
+	if instance == ReplicatedStorage.root then
+		return "root"
+	end
+	
 	path = instance.Name
 	repeat
 		path = lastParent.Name .. "/" .. path
+		if lastParent == ReplicatedStorage.root then break end
 		lastParent = lastParent.Parent
 		if lastParent == ReplicatedStorage.root then
 			path = lastParent.Name .. "/" .. path

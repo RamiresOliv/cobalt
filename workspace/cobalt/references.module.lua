@@ -1505,6 +1505,21 @@ refs["edit"] = function(args, utils)
 
 	return true
 end
+refs["getpath"] = function(args, utils)
+	args = _local.resolveArgs(args, utils)
+	if typeof(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
+
+	if typeof(args[1]) ~= "string" then
+		return false, "[getpath] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+	end
+
+	local toReadFile, fileInstance = _local.getPath(args[1], utils)
+	if toReadFile == false then
+		return false, "[getpath] file doesn't exists." 
+	end
+
+	return true, _local.getFullPath(fileInstance)
+end
 refs["edit"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if typeof(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
@@ -1638,7 +1653,7 @@ refs["delete"] = function(args, utils)
 		end
 		local destroyingOnce: RBXScriptConnection
 		destroyingOnce = file.Destroying:Once(function()
-			warn("destroyed folder or his parents, CD setted to root.")
+			warn("destroyed folder or his parents, cd setted to root.")
 			values.cd.Value = ReplicatedStorage.root
 		end)
 		file:Destroy()
@@ -1659,13 +1674,13 @@ refs["cd"] = function(args, utils)
 	if typeof(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
 	if args[1] and typeof(args[1]) ~= "string" then
-		return false, "[setcd] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[cd] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
 	end
 
 	if args[1] then
 		local toReadFile, file = _local.getPath(args[1], utils)
 		if toReadFile == false or not file:IsA("Folder") then
-			return false, "[setcd] directory not found."
+			return false, "[cd] directory not found."
 		end
 		values.cd.Value = file
 	end

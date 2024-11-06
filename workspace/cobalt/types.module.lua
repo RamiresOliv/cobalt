@@ -527,6 +527,12 @@ exports.mapping = {
 		params = {"string"},
 		returns = "list",
 	},
+	["getpath"] = {
+		description = "Returns a full file/folder path, returns: 'root/folders/path/to/file.txt'",
+		requiredEntries = 1,
+		params = {"string"},
+		returns = "string",
+	},
 	["edit"] = {
 		description = "Edits a file.",
 		requiredEntries = 2,
