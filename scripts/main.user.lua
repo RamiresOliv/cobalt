@@ -26,7 +26,6 @@ limiteCD = OS
 n = 0
 local modules = script.pages:GetChildren()
 table.sort(modules, function(a, b)
-	-- Extrai os números do começo dos nomes
 	local num_a = tonumber(a.Name:match("^(%d+)"))
 	local num_b = tonumber(b.Name:match("^(%d+)"))
 	return num_a < num_b

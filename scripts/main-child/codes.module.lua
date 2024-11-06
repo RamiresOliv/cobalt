@@ -1,4 +1,15 @@
 return {
+[[(if (== (exists? couting.txt) false)
+	(mkfile . couting.txt "file created!") ; creates a file (mkfile path name content)
+)
+
+(for (prompt "times?") i
+	(delay 0)
+	(edit couting.txt {i}) ; edits a file (mkfile path+name content)
+)
+
+(print (format "final file read: {1}" (read couting.txt)))
+]],
 [[(function comparative value
   (return (== (type {value}) "string"))
 )

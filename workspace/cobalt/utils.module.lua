@@ -37,13 +37,12 @@ _module.hexToString = function(str: string)
 	end))
 end
 
-_module.resolvePath = function(dir, utils)
+_module.getPath = function(dir, utils)
 	local progress = values.cd.Value
 	local tabled = nil
-
+	
 	if progress == nil then
 		values.cd.Value = ReplicatedStorage.root
-		warn(dir)
 		return true, values.cd.Value
 	end
 
@@ -99,6 +98,24 @@ _module.resolvePath = function(dir, utils)
 	end
 
 	return true, progress
+end
+
+_module.getFullPath = function(instance: Instance, utils)
+	local path = ""
+	local lastParent = instance.Parent
+	local rootFound = false
+	
+	path = instance.Name
+	repeat
+		path = lastParent.Name .. "/" .. path
+		lastParent = lastParent.Parent
+		if lastParent == ReplicatedStorage.root then
+			path = lastParent.Name .. "/" .. path
+			rootFound = true
+		end
+	until rootFound == true
+	
+	return path
 end
 
 return _module

@@ -24,7 +24,7 @@ function doBefore()
 	if not restarting then
 		doit()
 	else
-		mouse_warning.spawn(gui, "delay")
+		mouse_warning.spawn(gui, "delay active")
 	end
 end
 
@@ -92,7 +92,7 @@ function doit()
 	script.Parent.main.Enabled = true
 	mouse_warning.spawn(gui, [[cobalt halted
 cobalt started]])
-	wait(10)
+	wait(5)
 	restarting = false
 	return "done"
 end

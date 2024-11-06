@@ -29,6 +29,23 @@ local function worker(ui, console, button_frame)
 	console:newInput("Write here!")
 	console.inputEvent:Once(function(content: string)
 		local text = ui.input.Text
+		if text == "draw_cobalt" then
+			console:write(console:color([[
+      ___           ___           ___           ___           ___       ___     
+     /\  \         /\  \         /\  \         /\  \         /\__\     /\  \    
+    /::\  \       /::\  \       /::\  \       /::\  \       /:/  /     \:\  \   
+   /:/\:\  \     /:/\:\  \     /:/\:\  \     /:/\:\  \     /:/  /       \:\  \  
+  /:/  \:\  \   /:/  \:\  \   /::\~\:\__\   /::\~\:\  \   /:/  /        /::\  \ 
+ /:/__/ \:\__\ /:/__/ \:\__\ /:/\:\ \:|__| /:/\:\ \:\__\ /:/__/        /:/\:\__\
+ \:\  \  \/__/ \:\  \ /:/  / \:\~\:\/:/  / \/__\:\/:/  / \:\  \       /:/  \/__/
+  \:\  \        \:\  /:/  /   \:\ \::/  /       \::/  /   \:\  \     /:/  /     
+   \:\  \        \:\/:/  /     \:\/:/  /        /:/  /     \:\  \    \/__/      
+    \:\__\        \::/  /       \::/__/        /:/  /       \:\__\              
+     \/__/         \/__/         ~~            \/__/         \/__/              ]], "highlight"), nil, nil, true)
+			worker(ui, console, button_frame)
+			console:inputFocus()
+			return;
+		end
 		console:write(text, "muted")
 		ui.input.TextEditable = false
 		ui.input.AutomaticSize = Enum.AutomaticSize.X
@@ -39,7 +56,7 @@ local function worker(ui, console, button_frame)
 			return require(ReplicatedStorage.cobalt.cobalt)(content, console)
 		end)
 		if not success then
-			console:write("core: fatal failure :/", "red")
+			console:write("[console-core]: cobalt had a fatal failure :/", "red")
 		else
 			if r[1] == false then
 				console:write(r[2], "red")

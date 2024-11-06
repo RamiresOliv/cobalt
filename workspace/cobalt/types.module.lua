@@ -10,11 +10,11 @@ exports.mapping = {
 		params = {},
 		returns = "string",
 	},
-	["setcd"] = {
-		description = "Sets the current dir.",
-		requiredEntries = 1,
+	["cd"] = {
+		description = "Sets the current dir. And aways returs the current directory.",
+		requiredEntries = 0,
 		params = {"string"},
-		returns = "nil",
+		returns = "string",
 	},
 	["max"] = {
 		description = "Returns the bigger number between the given numbers or list.",
@@ -509,12 +509,12 @@ exports.mapping = {
 		params = {"string"},
 		returns = "boolean",
 	},
-	--[[["del"] = {
-		description = "delete's a file or a directory.",
+	["delete"] = {
+		description = "deletes a file or a directory.",
 		requiredEntries = 1,
 		params = {"string"},
 		returns = "string",
-	},]]
+	},
 	["read"] = {
 		description = "Reads a file.",
 		requiredEntries = 1,
@@ -527,23 +527,23 @@ exports.mapping = {
 		params = {"string"},
 		returns = "list",
 	},
-	["write"] = {
-		description = "Writes a file.",
-		requiredEntries = 1,
-		params = {"string"},
-		returns = "nil",
+	["edit"] = {
+		description = "Edits a file.",
+		requiredEntries = 2,
+		params = {"string", "any"},
+		returns = "string",
 	},
 	["mkfile"] = {
-		description = "Creates a empty file.",
-		requiredEntries = 1,
-		params = {"string"},
-		returns = "nil",
+		description = "Creates a file.",
+		requiredEntries = 3,
+		params = {"string", "string", "any"},
+		returns = "string",
 	},
 	["mkdir"] = {
 		description = "Creates a new dir.",
-		requiredEntries = 1,
-		params = {"string"},
-		returns = "nil",
+		requiredEntries = 2,
+		params = {"string", "string"},
+		returns = "string",
 	},
 
 	-- math, why not.

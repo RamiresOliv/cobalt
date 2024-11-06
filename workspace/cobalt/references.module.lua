@@ -24,7 +24,8 @@ _local.concat = utils.concat
 _local.typeof = utils.typeof
 _local.hexToString = utils.hexToString
 _local.stringToHex = utils.stringToHex
-_local.resolvePath = utils.resolvePath
+_local.getPath = utils.getPath
+_local.getFullPath = utils.getFullPath
 
 local types = require(p.types)
 local arguments_module = require(p.arguments)
@@ -365,8 +366,8 @@ refs["print"] = function(args, utils)
 			end
 		elseif args1Type == "number" or args1Type == "boolean" then
 			go = utils.console:color(tostring(v), "yellow")
-		--elseif args1Type == "nil" then
-		--	go = ""
+			--elseif args1Type == "nil" then
+			--	go = ""
 		elseif args1Type == "table" then
 			local isNumberIndex = false
 			for v_index, _ in v do
@@ -438,8 +439,8 @@ refs["println"] = function(args, utils)
 			end
 		elseif args1Type == "number" or args1Type == "boolean" then
 			go = utils.console:color(tostring(v), "yellow")
-		--elseif args1Type == "nil" then
-		--	go = "nil"
+			--elseif args1Type == "nil" then
+			--	go = "nil"
 		elseif args1Type == "table" then
 			local function readTable(t)
 				local togo = "["
@@ -509,11 +510,11 @@ refs["for"] = function(args, utils) -- complex
 			c = c:gsub("{" .. (loopArgs[2] or "_value") .. "}", tostring(translated_v))
 
 			local r, returns = require(p.index):run(c, nil, utils.console, true)
-
+			
 			if r[1] == false then return false, "[for] function error [" .. tostring(i) .. "]: " .. r[2] end
-			if r[2] then
+			--[[if r[2] then
 				return true, returns or r[2]
-			end
+			end]]
 		end
 	end
 	if typeof(operator) == "table" then
@@ -526,20 +527,20 @@ refs["for"] = function(args, utils) -- complex
 				elseif b == "_-!@!_-!-break-and-stop-rn!" then
 					break
 				end
-				return a, b
+				--return a, b
 			end
 		end
 	elseif typeof(operator) == "number" then
 		for index = 1, operator do
 			local a, b = loopa(index, "nil")
-
+			
 			if a ~= nil then
 				if b == "_-!@!_-!-continue-skip-this-thing-rn!" then
 					continue
 				elseif b == "_-!@!_-!-break-and-stop-rn!" then
 					break
 				end
-				return a, b
+				--return a, b
 			end
 		end
 	else
@@ -826,7 +827,7 @@ end
 refs["str"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if typeof(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
-	
+
 	local toGo = _local.concat(args, " ")
 	if toGo:sub(1, 1) == '"' and toGo:sub(-1) == '"' then
 		toGo = toGo:sub(2, -2)
@@ -1409,7 +1410,7 @@ refs["exists?"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if typeof(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
-	local toReadFile, file = _local.resolvePath(args[1], utils)
+	local toReadFile, file = _local.getPath(args[1], utils)
 
 	if toReadFile == false then
 		return true, nil
@@ -1430,7 +1431,7 @@ refs["read"] = function(args, utils)
 	if not args[1] then
 		return false, "[read] name is required."
 	end
-	local toReadFile, file = _local.resolvePath(args[1], utils)
+	local toReadFile, file = _local.getPath(args[1], utils)
 	if toReadFile == false or not file:IsA("ValueBase") then
 		return false, "[read] file not found." 
 	end
@@ -1446,7 +1447,7 @@ refs["readdir"] = function(args, utils)
 		return false, "[readdir] name is required."
 	end
 
-	local toReadDir, file = _local.resolvePath(args[1], utils)
+	local toReadDir, file = _local.getPath(args[1], utils)
 	if toReadDir == false or not file:IsA("Folder") then
 		return false, "[readdir] directory not found."
 	end
@@ -1478,7 +1479,7 @@ refs["readdir"] = function(args, utils)
 
 	return true, toGo
 end
-refs["write"] = function(args, utils)
+refs["edit"] = function(args, utils)
 	local filePath = _local.resolveSpecificArgs(table.remove(args, 1), utils)
 	if typeof(filePath) == "table" and filePath[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
@@ -1486,10 +1487,6 @@ refs["write"] = function(args, utils)
 		return false, "[write] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
 	end
 
-	--for i, v in fileExtentions do
-	--	filePath = filePath:gsub("." .. v, "*" .. v)
-	--end
-	--args[1] = args[1]:gsub(" ", "Ç^_SPACE_^Ç")
 	if not filePath or not args[1] then
 		return false, "[write] name and content is required. received (both args): [1]: " .. _local.typeof(filePath) .. " [2]: " .. _local.typeof(args[1])
 	end
@@ -1498,62 +1495,90 @@ refs["write"] = function(args, utils)
 			return false, `[write] file name cannot contain special characters: "{char}"`
 		end
 	end
-	local toReadFile, file = _local.resolvePath(filePath, utils)
+	local toReadFile, file = _local.getPath(filePath, utils)
 	if toReadFile == false or not file:IsA("Folder") then
 		return false, "[write] file not found."
 	end
 	if args[1] then
 		file.Value = tostring(_local.concat(args, " "))
-	end--[[
-	if typeof(args[1]) == "table" then
-		file.Value = _local.tableToString(args[2])
-	else
-		file.Value = tostring(args[2])
-	end]]
+	end
 
 	return true
 end
-refs["mkfile"] = function(args, utils)
-	local filePath = _local.resolveSpecificArgs(table.remove(args, 1), utils)
-	if typeof(filePath) == "table" and filePath[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
+refs["edit"] = function(args, utils)
+	args = _local.resolveArgs(args, utils)
+	if typeof(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
-	if typeof(filePath) ~= "string" then
-		return false, "[mkfile] expected a string but received [1]: '" .. _local.typeof(filePath) .. "'"
+	if typeof(args[1]) ~= "string" then
+		return false, "[mkfile] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+	end
+	
+	if not typeof(args[2]) then
+		return false, "[mkfile] expected any value but received [2]: '" .. _local.typeof(args[2]) .. "'"
+	end
+	
+	local toReadFile, fileInstance = _local.getPath(args[1], utils)
+	if toReadFile == false then
+		return false, "[edit] file doesn't exists." 
+	end
+	
+	if args[2] then
+		if typeof(args[2]) == "table" then
+			args[2] = _local.tableToString(args[2])
+		end
+		
+		fileInstance.Value = tostring(args[2])
+	end
+	
+	return true, _local.getFullPath(fileInstance)
+end
+refs["mkfile"] = function(args, utils)
+	args = _local.resolveArgs(args, utils)
+	if typeof(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
+
+	if typeof(args[1]) ~= "string" then
+		return false, "[mkfile] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
 	end
 
-	--for i, v in fileExtentions do
-	--	filePath = filePath:gsub("." .. v, "*" .. v)
-	--end
-	--args[1] = args[1]:gsub(" ", "Ç^_SPACE_^Ç")
+	if typeof(args[2]) ~= "string" then
+		return false, "[mkfile] expected a string but received [2]: '" .. _local.typeof(args[2]) .. "'"
+	end
 
-	if not filePath then
-		return false, "[mkfile] name is required."
+	if not args[3] then
+		return false, "[mkfile] expected any value but received [3]: '" .. _local.typeof(args[3]) .. "'"
 	end
 
 	for _, char in  types.ilegalChars do
-		if char ~= "" and string.find(filePath, char) then
+		if char ~= "" and string.find(args[2], char) then
 			return false, `[mkfile] file name cannot contain special characters: "{char}"`
 		end
 	end
 
-	local toReadFile, file = _local.resolvePath(filePath, utils)
+	local toReadFile, fileInstance = _local.getPath(args[1] .. "/" .. args[2], utils)
+	local toReadDir, parentFolderInstance = _local.getPath(args[1], utils)
+	if toReadDir == false then
+		return false, "[mkfile] file directory doesn't exists." 
+	end
 	if toReadFile == true then
-		return false, "[mkfile] another file with the same name already exists." 
+		return false, "[mkfile] file already exists in '" .. _local.getFullPath(fileInstance) .. "'"
 	end
 
-	local file = Instance.new("StringValue", values.cd.Value)
-	file.Name = tostring(filePath)
+	if not parentFolderInstance:IsA("Folder") then
+		return false, "[mkfile] the given path isn't a valid folder.";
+	end
 
-	if args[1] then
-		file.Value = tostring(_local.concat(args, " "))
-	end--[[
-	if typeof(args[1]) == "table" then
-		file.Value = _local.tableToString(args[2])
-	else
-		file.Value = tostring(args[2])
-	end]]
+	local file = Instance.new("StringValue", parentFolderInstance)
+	file.Name = tostring(args[2])
 
-	return true
+	if args[3] then
+		if typeof(args[3]) == "table" then
+			args[3] = _local.tableToString(args[3])
+		end
+
+		file.Value = tostring(args[3])
+	end
+
+	return true, _local.getFullPath(file)
 end
 refs["mkdir"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
@@ -1563,67 +1588,89 @@ refs["mkdir"] = function(args, utils)
 		return false, "[mkdir] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
 	end
 
-	if not args[1] then
-		return false, "[mkdir] name is required."
+	if typeof(args[2]) ~= "string" then
+		return false, "[mkdir] expected a string but received [2]: '" .. _local.typeof(args[2]) .. "'"
 	end
 
 	for _, char in  types.ilegalChars do
-		if char ~= "" and string.find(args[1], char) then
-			return false, `[mkdir] folder name cannot contain special characters: "{char}"`
+		if char ~= "" and string.find(args[2], char) then
+			return false, `[mkfile] file name cannot contain special characters: "{char}"`
 		end
 	end
 
-	local toReadFile, file = _local.resolvePath(args[1], utils)
-	if toReadFile == true then
-		return false, "[mkdir] another file with the same name already exists." 
+	local toReadDir, dirInstance = _local.getPath(args[1] .. "/" .. args[2], utils)
+	local toReadParentDir, parentFolderInstance = _local.getPath(args[1], utils)
+	if toReadParentDir == false then
+		return false, "[mkdir] file directory doesn't exists." 
+	end
+	if toReadDir == true then
+		return false, "[mkdir] file already exists in '" .. _local.getFullPath(dirInstance) .. "'"
 	end
 
-	local folder = Instance.new("Folder", values.cd.Value)
-	folder.Name = tostring(args[1])
+	if not parentFolderInstance:IsA("Folder") then
+		return false, "[mkdir] the given path isn't a valid folder.";
+	end
 
-	return true
+	local folder = Instance.new("Folder", parentFolderInstance)
+	folder.Name = tostring(args[2])
+	return true, _local.getFullPath(folder)
 end
-refs["del"] = function(args, utils)
+refs["delete"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if typeof(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
 	if typeof(args[1]) ~= "string" then
-		return false, "[del] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[delete] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
 	end
 
 	if not args[1] then
-		return false, "[del] name is required."
+		return false, "[delete] name is required."
 	end
-	
-	local toReadFile, file = _local.resolvePath(args[1], utils)
+
+	local toReadFile, file = _local.getPath(args[1], utils)
 	if toReadFile == false then
-		return false, "[del] file or directory doesn't exists. - 1" 
+		return false, "[delete] file or directory doesn't exists." 
 	end
 
 	if file:IsA("ValueBase") or file:IsA("Folder") then
+		if file == ReplicatedStorage.root then
+			return false, "[delete] access denied, unable to delete root." 
+		end
+		local destroyingOnce: RBXScriptConnection
+		destroyingOnce = file.Destroying:Once(function()
+			warn("destroyed folder or his parents, CD setted to root.")
+			values.cd.Value = ReplicatedStorage.root
+		end)
 		file:Destroy()
+		spawn(function()
+			wait(3)
+			if destroyingOnce then
+				destroyingOnce:Disconnect()
+			end
+		end)
 	else
-		return false, "[del] file or directory doesn't exists. - 2 " 
+		return false, "[delete][failed] unknown file type." 
 	end
 
 	return true
 end
-refs["setcd"] = function(args, utils)
+refs["cd"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if typeof(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
-	if typeof(args[1]) ~= "string" then
+	if args[1] and typeof(args[1]) ~= "string" then
 		return false, "[setcd] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
 	end
 
-	local toReadFile, file = _local.resolvePath(args[1], utils)
-
-	if toReadFile == false or not file:IsA("Folder") then
-		return false, "[setcd] directory not found."
+	if args[1] then
+		local toReadFile, file = _local.getPath(args[1], utils)
+		if toReadFile == false or not file:IsA("Folder") then
+			return false, "[setcd] directory not found."
+		end
+		values.cd.Value = file
 	end
-	values.cd.Value = file
 
-	return true
+	return true, values.cd.Value.Name
 end
 refs["getcd"] = function(args, utils)
 	return true, values.cd.Value.Name
@@ -1644,7 +1691,7 @@ refs["require"] = function(args, utils)
 		return false, "[require] expected a boolean but received [3]: '" .. _local.typeof(args[3]) .. "'"
 	end
 
-	local toReadFile, file = _local.resolvePath(args[1], utils)
+	local toReadFile, file = _local.getPath(args[1], utils)
 	if toReadFile == false or not file:IsA("ValueBase") then
 		return false, "[require] path is not a valid file: '" .. tostring(args[1]) .. "'"
 	end

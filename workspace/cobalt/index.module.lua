@@ -225,6 +225,8 @@ function me:run(code, rawArgs, console, mr)
 					if mr == true then
 						return {true, arguments:indexArgHandler(r[2], rawArgs), r[4]}
 					end
+					
+					return {true}
 				end
 
 				local get
