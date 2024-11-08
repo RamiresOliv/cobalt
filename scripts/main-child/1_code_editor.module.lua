@@ -33,12 +33,12 @@ function disable(button, ui, state)
 end
 
 
-a.init = function(ui, onClick)
+a.init = function(ui, onClick, popup, getPageData)
 	for i, v in pairs(ui:GetChildren()) do
 		v.Visible = false
 	end
 	
-	ui.Editor.TextBox.Text = require(script.codes)[math.random(1, #require(script.codes))]
+	ui.Editor.TextBox.Text = "; here you can write your code before send it to the console.\n; press 'run code' to run in console.\n\n" .. require(script.codes)[math.random(1, #require(script.codes))]
 	
 	ui.Editor.TextBox.Focused:Once(function()
 		ui.Editor.TextBox.SelectionStart = 1
@@ -50,16 +50,43 @@ a.init = function(ui, onClick)
 		updateLineCounts(ui)
 	end)
 	
-	local firstTime = false
+	ui.b.content.MouseEnter:Connect(function()
+		ui.b.BackgroundColor3 = Color3.new(1, 1, 1)
+		ui.b.content.TextColor3 = Color3.new(0, 0, 0)
+		popup("this will run the code in the console.", 2, UDim2.new(0,0,0,0), true)
+	end)
+	ui.b.content.MouseLeave:Connect(function()
+		ui.b.BackgroundColor3 = Color3.new(0.14902, 0.14902, 0.164706)
+		ui.b.content.TextColor3 = Color3.new(0.682353, 0.752941, 0.784314)
+	end)
 	ui.b.content.MouseButton1Click:Connect(function()
-		if not firstTime then
+		local editor = getPageData("Code Editor")
+		local compiler = getPageData("Compiler Console")
+
+		if not editor then return warn("getUI(Code Editor): returned nil.") end
+		if not compiler then return warn("getUI(Compiler Console): returned nil.") end
+		disable(nil, ui)
+		compiler:forceOpen()
+		local answer = compiler:custom(ui.Editor.TextBox.Text)
+		print(answer)
+		if answer == false then
+			--disable(nil, ui)
+			editor:forceOpen()
+			popup("failed to run code, maybe something is already running?", 2, UDim2.new(0,0,0,0), true)
+			return;
+		end
+		
+		--compiler.ui:WaitForChild("input").Text = ui.Editor.TextBox.Text
+		--compiler.ui:WaitForChild("input"):CaptureFocus()
+		
+		--[[if not firstTime then
 			firstTime = true
 			ui.Editor.TextBox.Text = ui.Editor.TextBox.Text .. "\nNot working! :l"
 		else
 			ui.Editor.TextBox.Text = ui.Editor.TextBox.Text .. "\nStill not working... :l"
-		end
+		end]]
 	end)
-	return enable, disable;
+	return enable, disable, nil;
 end
 
 return a

@@ -1,4 +1,4 @@
 return function(code: string, console: console)
-	return require(script.Parent.index):run(code, nil, console, false)
+	return require(script.Parent.index):init(code, nil, console, false)
 end
 -- calls index

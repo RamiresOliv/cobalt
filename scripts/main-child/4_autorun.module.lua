@@ -25,7 +25,7 @@ a.init = function(ui, onClick)
 		v.Visible = false
 	end
 	
-	return enable, disable;
+	return enable, disable, nil;
 end
 
 return a

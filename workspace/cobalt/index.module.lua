@@ -85,6 +85,13 @@ function getLine(things)
 	return args
 end
 
+-- this function start everything. Cleaning the temporary data before run. [THIS ONE TO RUN A GIVEN CODE]
+function me:init(code: string, rawArgs: table, console: console, mustReturn: boolean)
+	temporary:clear()
+	return me:run(code, rawArgs, console, mustReturn)
+end
+
+-- this function is globally called, this means, the own cobalt calls it for fix arguments and stuff like that. [THIS ONE IS FOR OWN COBALT]
 function me:run(code, rawArgs, console, mr)
 	local proccess = 0
 	if mr == nil then mr = false end
@@ -255,7 +262,7 @@ function me:run(code, rawArgs, console, mr)
 		warn("[index.mluau]: High level error:")
 		warn(returns)
 		temporary:clear()
-		return {false, returns}
+		return {false, returns, true}
 	elseif typeof(returns) == "table" and returns[1] == false then
 		temporary:clear()
 		return {false, returns[2]}

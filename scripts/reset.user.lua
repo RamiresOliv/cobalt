@@ -4,6 +4,7 @@ local TweenService = game:GetService("TweenService")
 local SoundService = game:GetService("SoundService")
 local GuiService = game:GetService("GuiService")
 local StarterGui = game:GetService("StarterGui")
+local LogService = game:GetService("LogService")
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local global = ReplicatedStorage:WaitForChild("global")
@@ -73,6 +74,16 @@ end)
 UserInputService.InputEnded:Connect(function(input, gpe)
 	if input.KeyCode == Enum.KeyCode.LeftControl then
 		LControlKeyDown = false
+	end
+end)
+
+LogService.MessageOut:Connect(function(message, mType)
+	if message == "Script timeout: exhausted allowed execution time" and mType == Enum.MessageType.MessageError then
+		mouse_warning.spawn(gui, "exhausted allowed execution time forcing restart... (3s)")
+		warn("FORCE-RESET: detected a script timeout, due a for loop? Anyways, cobalt got force reseted.")
+		wait(3)
+		warn("FORCE-RESET: reseting...")
+		doBefore()
 	end
 end)
 

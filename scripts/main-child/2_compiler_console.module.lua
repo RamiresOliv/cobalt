@@ -25,6 +25,7 @@ function disable(button_frame, ui, state)
 	end
 end
 
+running = false
 local function worker(ui, console, button_frame)
 	console:newInput("Write here!")
 	console.inputEvent:Once(function(content: string)
@@ -52,20 +53,33 @@ local function worker(ui, console, button_frame)
 		ui.input.TextColor3 = Color3.new(0.223529, 0.223529, 0.223529)
 		local b_text = button_frame.content.Text
 		button_frame.content.Text = "[r] " .. b_text
+		running = true
 		local success, r = pcall(function()
 			return require(ReplicatedStorage.cobalt.cobalt)(content, console)
 		end)
 		if not success then
-			console:write("[console-core]: cobalt had a fatal failure :/", "red")
+			r = r:gsub("ReplicatedStorage.", "RS.")
+			console:write("[console-core:roblox-native:handled]: cobalt execution had a fatal failure :/", "red")
+			console:write("[console-core:roblox-native:handled:DATA]: " .. r, "yellow")
+			console:write("[!]: you may report this issue.", "muted")
+			warn("cobalt failed PCALL ISSUE: " .. r)
 		else
 			if r[1] == false then
-				console:write(r[2], "red")
+				if r[3] == true then
+					r[2] = r[2]:gsub("ReplicatedStorage.", "RS.")
+					console:write("[cobalt-core:handled]: high level error happened :/", "red")
+					console:write("[cobalt-core:handled:DATA]: " .. r[2], "yellow")
+					console:write("[!]: you may report this issue.", "muted")
+				else
+					console:write(r[2], "red")
+				end
 			end
 		end
 		button_frame.content.Text = b_text
 		ui.input.AutomaticSize = Enum.AutomaticSize.Y
 		ui.input.TextColor3 = Color3.new(0.631373, 0.631373, 0.631373)
 		ui.input.TextEditable = true
+		running = false
 		worker(ui, console, button_frame)
 		console:inputFocus()
 	end)
@@ -87,8 +101,61 @@ a.init = function(ui, button_frame)
 	end
 	
 	worker(ui, console, button_frame)
-	
-	return enable, disable;
+	return enable, disable, function(self, text)
+		if running then return false end
+		
+		if text == "draw_cobalt" then
+			console:write(console:color([[
+      ___           ___           ___           ___           ___       ___     
+     /\  \         /\  \         /\  \         /\  \         /\__\     /\  \    
+    /::\  \       /::\  \       /::\  \       /::\  \       /:/  /     \:\  \   
+   /:/\:\  \     /:/\:\  \     /:/\:\  \     /:/\:\  \     /:/  /       \:\  \  
+  /:/  \:\  \   /:/  \:\  \   /::\~\:\__\   /::\~\:\  \   /:/  /        /::\  \ 
+ /:/__/ \:\__\ /:/__/ \:\__\ /:/\:\ \:|__| /:/\:\ \:\__\ /:/__/        /:/\:\__\
+ \:\  \  \/__/ \:\  \ /:/  / \:\~\:\/:/  / \/__\:\/:/  / \:\  \       /:/  \/__/
+  \:\  \        \:\  /:/  /   \:\ \::/  /       \::/  /   \:\  \     /:/  /     
+   \:\  \        \:\/:/  /     \:\/:/  /        /:/  /     \:\  \    \/__/      
+    \:\__\        \::/  /       \::/__/        /:/  /       \:\__\              
+     \/__/         \/__/         ~~            \/__/         \/__/              ]], "highlight"), nil, nil, true)
+			worker(ui, console, button_frame)
+			console:inputFocus()
+			return;
+		end
+		console:write(text, "muted")
+		ui.input.TextEditable = false
+		ui.input.AutomaticSize = Enum.AutomaticSize.X
+		ui.input.TextColor3 = Color3.new(0.223529, 0.223529, 0.223529)
+		local b_text = button_frame.content.Text
+		button_frame.content.Text = "[r] " .. b_text
+		running = true
+		local success, r = pcall(function()
+			return require(ReplicatedStorage.cobalt.cobalt)(text, console)
+		end)
+		if not success then
+			r = r:gsub("ReplicatedStorage.", "RS.")
+			console:write("[console-core:roblox-native:handled]: cobalt execution had a fatal failure :/", "red")
+			console:write("[console-core:roblox-native:handled:DATA]: " .. r, "yellow")
+			console:write("[!]: you may report this issue.", "muted")
+			warn("cobalt failed PCALL ISSUE: " .. r)
+		else
+			if r[1] == false then
+				if r[3] == true then
+					r[2] = r[2]:gsub("ReplicatedStorage.", "RS.")
+					console:write("[cobalt-core:handled]: high level error happened :/", "red")
+					console:write("[cobalt-core:handled:DATA]: " .. r[2], "yellow")
+					console:write("[!]: you may report this issue.", "muted")
+				else
+					console:write(r[2], "red")
+				end
+			end
+		end
+		button_frame.content.Text = b_text
+		ui.input.AutomaticSize = Enum.AutomaticSize.Y
+		ui.input.TextColor3 = Color3.new(0.631373, 0.631373, 0.631373)
+		ui.input.TextEditable = true
+		running = false
+		return true;
+	end;
 end
 
 return a

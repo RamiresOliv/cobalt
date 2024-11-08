@@ -32,9 +32,9 @@ return {
   (var input (prompt "Try guess my random number:"))
   (var correct (random 1 5))
   (if (== {input} {correct})
-    (print (colorize "You are right!! Good job!" "green"))
+    (print (color "You are right!! Good job!" "green"))
   else
-    (print (colorize "No! Wrong number, try again!" "red"))
+    (print (color "No! Wrong number, try again!" "red"))
     (worker)
   )
 )

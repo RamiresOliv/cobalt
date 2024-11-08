@@ -31,6 +31,12 @@ table.sort(modules, function(a, b)
 	return num_a < num_b
 end)
 
+
+local mouse_warning = require(script.Parent.modules.mouse_warning)
+function popup(...)
+	mouse_warning.spawn(gui, ...)
+end
+
 for i, v in ipairs(modules) do
 	if v:IsA("ModuleScript") then
 		n += 1
@@ -67,16 +73,10 @@ for i, v in ipairs(modules) do
 			ui = pre_ui
 		end
 		
-		local enable, disable = module.init(ui, button)
-		buttonsDatas[module.settings.name] = {
-			ui = ui,
-			enable = enable,
-			disable = disable,
-			name = module.settings.name,
-			objName = module.settings.page_obj_name
-		}
+		local enable, disable, customReturn = module.init(ui, button, popup, function(uiName)
+			return buttonsDatas[uiName] or nil end)
 		
-		button.content.MouseButton1Click:Connect(function()
+		function open()
 			if buttonsState[module.settings.name] == false then
 				buttonsState[module.settings.name] = true
 				button.BackgroundColor3 = Color3.new(0.294118, 0.513725, 0.972549)
@@ -92,7 +92,19 @@ for i, v in ipairs(modules) do
 				enable(button, ui, buttonsState[module.settings.name])
 				gui.bg["1_header"].left["2_title"].Text = (buttonsDatas[module.settings.name]["objName"] or "unknown_page")
 			end
-		end)
+		end
+		
+		buttonsDatas[module.settings.name] = {
+			ui = ui,
+			enable = enable,
+			disable = disable,
+			forceOpen = open,
+			name = module.settings.name,
+			objName = module.settings.page_obj_name,
+			custom = customReturn
+		}
+		
+		button.content.MouseButton1Click:Connect(open)
 
 		if n == 1 then
 			firstModule = {

@@ -256,6 +256,7 @@ refs["var"] = function(args, utils)
 			variable.Value = tostring(args[2])
 		end
 	end
+	
 	--local r, err = utils.set_variable(args[1], args[2])
 	return true
 end
@@ -510,7 +511,7 @@ refs["for"] = function(args, utils) -- complex
 			c = c:gsub("{" .. (loopArgs[2] or "_value") .. "}", tostring(translated_v))
 
 			local r, returns = require(p.index):run(c, nil, utils.console, true)
-			
+
 			if r[1] == false then return false, "[for] function error [" .. tostring(i) .. "]: " .. r[2] end
 			--[[if r[2] then
 				return true, returns or r[2]
@@ -533,7 +534,7 @@ refs["for"] = function(args, utils) -- complex
 	elseif typeof(operator) == "number" then
 		for index = 1, operator do
 			local a, b = loopa(index, "nil")
-			
+
 			if a ~= nil then
 				if b == "_-!@!_-!-continue-skip-this-thing-rn!" then
 					continue
@@ -566,12 +567,20 @@ refs["function"] = function(rawArgs, utils)
 		end
 	end
 
-	local variable = Instance.new("StringValue", temporary.functions)
-	variable.Name = tostring(func_name)
-	variable.Value = game:GetService("HttpService"):JSONEncode({
-		arguments = args,
-		commands = cmds
-	})
+	local ffc = temporary.functions:FindFirstChild(func_name)
+	if ffc and ffc:IsA("StringValue") then
+		ffc.Value = game:GetService("HttpService"):JSONEncode({
+			arguments = args,
+			commands = cmds
+		})
+	else
+		local newFunc = Instance.new("StringValue", temporary.functions)
+		newFunc.Name = tostring(func_name)
+		newFunc.Value = game:GetService("HttpService"):JSONEncode({
+			arguments = args,
+			commands = cmds
+		})
+	end
 
 	--local a, b = utils.set_function(func_name, args, commands)
 	return true
@@ -871,10 +880,10 @@ refs["color"] = function(args, utils)
 	args[2] = tostring(args[2])
 
 	if typeof(args[1]) ~= "string" then
-		return false, "[colorize] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[color] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
 	end
 	if typeof(args[2]) ~= "string" then
-		return false, "[colorize] expected a string but received [2]: '" .. _local.typeof(args[2]) .. "'"
+		return false, "[color] expected a string but received [2]: '" .. _local.typeof(args[2]) .. "'"
 	end
 
 	local color = colors[args[2]]
@@ -899,7 +908,7 @@ refs["color"] = function(args, utils)
 					clrs = clrs .. `<font color="{colors["blank"]}">, </font>` .. `<font color="{textColor}">{i}</font>`
 				end
 			end
-			return false, "[colorize] invalid color hex or color name. valid names is: " .. clrs .. "."
+			return false, "[color] invalid color hex or color name. valid names is: " .. clrs .. "."
 		end
 	end
 
@@ -1527,24 +1536,24 @@ refs["edit"] = function(args, utils)
 	if typeof(args[1]) ~= "string" then
 		return false, "[mkfile] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
 	end
-	
+
 	if not typeof(args[2]) then
 		return false, "[mkfile] expected any value but received [2]: '" .. _local.typeof(args[2]) .. "'"
 	end
-	
+
 	local toReadFile, fileInstance = _local.getPath(args[1], utils)
 	if toReadFile == false then
 		return false, "[edit] file doesn't exists." 
 	end
-	
+
 	if args[2] then
 		if typeof(args[2]) == "table" then
 			args[2] = _local.tableToString(args[2])
 		end
-		
+
 		fileInstance.Value = tostring(args[2])
 	end
-	
+
 	return true, _local.getFullPath(fileInstance)
 end
 refs["mkfile"] = function(args, utils)

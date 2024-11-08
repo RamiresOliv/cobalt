@@ -1,6 +1,6 @@
 local g = {}
 
-g.version = "1.3.4"
-g.versionName = "cobalt FS+, for loop fixes update"
+g.version = "1.3.6"
+g.versionName = "cobalt functions bugs fix, new ui features."
 
 return g
