@@ -1,6 +1,7 @@
 -- test, hello world!
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local HttpService = game:GetService("HttpService")
 local global = ReplicatedStorage:WaitForChild("global")
 local temporary = ReplicatedStorage:WaitForChild("temporary")
 local values = global:WaitForChild("values")
@@ -28,10 +29,34 @@ _local.getPath = utils.getPath
 _local.getFullPath = utils.getFullPath
 
 local types = require(p.types)
-local arguments_module = require(p.arguments)
+local arguments = require(p.arguments)
 
+local function jsonObjToTable(json_obj)
+	local v = HttpService:JSONDecode(json_obj)
 
--- noted: later fix! - idk what to fix
+	local function convertTable(t)
+		local result = {}
+		local total = 0
+
+		for _, value in pairs(t) do
+			total = total + 1
+			if typeof(value) == "table" then
+				result[total] = convertTable(value)
+			else
+				result[total] = value
+			end
+		end
+
+		return result
+	end
+
+	if typeof(v) == "table" then
+		return convertTable(v)
+	else
+		return v
+	end
+end
+
 function _local.tableToString(list)
 	local dat = "["
 	if typeof(list) ~= "table" then
@@ -51,81 +76,7 @@ end
 -- args parts:
 function resolve_args(v, utils, allowSpecificReturns)
 	-- check if has ()
-	local thingToReturn = nil
-	if typeof(v) == "string" and v:sub(1, 1) == '(' and v:sub(-1) == ')' then
-		local compilation = require(script.Parent.index):run(v, nil, utils.console, true)
-
-		thingToReturn = compilation[4]
-
-		if compilation[1] == false then
-			if typeof(compilation[2]) == "table" then
-				return {false, "[sub-function]: " .. compilation[2][2]}
-			else
-				return {false, "[sub-function]: " .. compilation[2]}
-			end
-		end
-		local ohmy = compilation
-
-		if compilation[3] ~= true then
-			if typeof(compilation[2]) == "table" then
-				local a = _local.resolveArgs(compilation[2], utils)
-				ohmy[2] = a
-			else
-				ohmy[2] = _local.resolveSpecificArgs(compilation[2], utils, allowSpecificReturns)
-			end
-		end
-		if ohmy[1] == "_!!dDecodePSCFail!!_" then return false, ohmy[2] end
-		v = ohmy[2]
-	elseif typeof(v) == "string" and v:sub(1, 1) == '[' and v:sub(-1, -1) == ']' then
-		v = v:sub(2, -2)
-
-		local rendered_table = {}
-		for value in v:gmatch("([^,]+)") do
-			value = value:match("^%s*(.-)%s*$")
-			local dec = _local.resolveSpecificArgs(value, utils)
-			if typeof(dec) == "table" and dec[1] == false or typeof(dec) == "table" and dec[1] == "_!!dDecodePSCFail!!_" then 
-				return {false, dec[2]} 
-			end
-
-			table.insert(rendered_table, dec)
-		end
-
-		local result = {}
-		local stack = {result}
-		local currentTable = result
-
-		for _, value in ipairs(rendered_table) do
-			if typeof(value) == "string" then
-				local openBrackets = select(2, value:gsub("%[", ""))
-				local closeBrackets = select(2, value:gsub("%]", ""))
-
-				local cleanValue = value:gsub("%[", ""):gsub("%]", "")
-
-				for _ = 1, openBrackets do
-					local newTable = {}
-					table.insert(currentTable, newTable)
-					table.insert(stack, currentTable)
-					currentTable = newTable
-				end
-
-				if cleanValue ~= "" then
-					local rSA = _local.resolveSpecificArgs(arguments_module:indexArgHandler(cleanValue), utils)
-					if typeof(rSA) == "table" and rSA[1] == "_!!dDecodePSCFail!!_" then return {false, "[sub-function]: " .. tostring(rSA[2])} end
-					table.insert(currentTable, rSA)
-				end
-
-				for _ = 1, closeBrackets do
-					if #stack > 0 then
-						currentTable = table.remove(stack)
-					end
-				end
-			else
-				table.insert(currentTable, value)
-			end
-		end
-
-		v = result
-	end
+	
 	if typeof(v) == "string" then
 		if string.sub(v, 1, 8) == "_!str!_-" then
 			local hex = string.sub(v, 9)
@@ -134,10 +85,6 @@ function resolve_args(v, utils, allowSpecificReturns)
 		elseif string.sub(v, 1, 8) == "_!fmt!_-" then
 			v = string.sub(v, 9)
 		end
-	end
-
-	if typeof(v) == "string" then
-		v = string.gsub(v, "_$#@¨COMMA_CHAR¨@#$_", '"')
 	end
 
 	if typeof(v) == "string" then
@@ -195,6 +142,83 @@ function resolve_args(v, utils, allowSpecificReturns)
 			end
 		end
 	end
+	
+	local thingToReturn = nil
+	if typeof(v) == "string" and v:sub(1, 1) == '(' and v:sub(-1) == ')' then
+		local compilation = require(script.Parent.index):run(v, nil, utils.console, true)
+
+		thingToReturn = compilation[4]
+
+		if compilation[1] == false then
+			if typeof(compilation[2]) == "table" then
+				return {false, "[sub-function]: " .. compilation[2][2]}
+			else
+				return {false, "[sub-function]: " .. compilation[2]}
+			end
+		end
+		local ohmy = compilation
+
+		if compilation[3] ~= true then
+			if typeof(compilation[2]) == "table" then
+				local a = _local.resolveArgs(compilation[2], utils)
+				ohmy[2] = a
+			else
+				ohmy[2] = _local.resolveSpecificArgs(compilation[2], utils, allowSpecificReturns)
+			end
+		end
+		if ohmy[1] == "_!!dDecodePSCFail!!_" then return false, ohmy[2] end
+		v = ohmy[2]
+	elseif typeof(v) == "string" and v:sub(1, 1) == '[' and v:sub(-1, -1) == ']' then
+		v = v:sub(2, -2)
+
+		local rendered_table = {}
+		for value in v:gmatch("([^,]+)") do
+			value = value:match("^%s*(.-)%s*$")
+			local dec = _local.resolveSpecificArgs(value, utils)
+			if typeof(dec) == "table" and dec[1] == false or typeof(dec) == "table" and dec[1] == "_!!dDecodePSCFail!!_" then 
+				return {false, dec[2]} 
+			end
+
+			table.insert(rendered_table, dec)
+		end
+
+		local result = {}
+		local stack = {result}
+		
+		local currentTable = result
+
+		for _, value in ipairs(rendered_table) do
+			if typeof(value) == "string" then
+				local openBrackets = select(2, value:gsub("%[", ""))
+				local closeBrackets = select(2, value:gsub("%]", ""))
+
+				local cleanValue = value:gsub("%[", ""):gsub("%]", "")
+
+				for _ = 1, openBrackets do
+					local newTable = {}
+					table.insert(currentTable, newTable)
+					table.insert(stack, currentTable)
+					currentTable = newTable
+				end
+
+				if cleanValue ~= "" then
+					local rSA = _local.resolveSpecificArgs(arguments:indexArgHandler(cleanValue), utils)
+					if typeof(rSA) == "table" and rSA[1] == "_!!dDecodePSCFail!!_" then return {false, "[sub-function]: " .. tostring(rSA[2])} end
+					table.insert(currentTable, rSA)
+				end
+
+				for _ = 1, closeBrackets do
+					if #stack > 0 then
+						currentTable = table.remove(stack)
+					end
+				end
+			else
+				table.insert(currentTable, value)
+			end
+		end
+
+		v = result
+	end
 
 	if not allowSpecificReturns then
 		if typeof(v) == "string" then
@@ -202,6 +226,10 @@ function resolve_args(v, utils, allowSpecificReturns)
 				v = nil
 			end
 		end
+	end
+	
+	if typeof(v) == "string" then
+		v = string.gsub(v, "_$#@¨COMMA_CHAR¨@#$_", '"')
 	end
 
 	local toNumberPcallSuccess, n = pcall(function()
@@ -234,7 +262,7 @@ end
 refs["var"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if typeof(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
-
+	
 	if not args[1] or typeof(args[1]) ~= "string" then
 		return false, "[var] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
 	end
@@ -1814,6 +1842,7 @@ refs["neg"] = function(args, utils)
 end
 refs["+"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
+	print(args)
 	if typeof(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 	if typeof(args[1]) ~= "number" then
 		return false, "[+] expected a number but received [1]: '" .. _local.typeof(args[1]) .. "'"
@@ -2319,11 +2348,9 @@ end
 refs["json-decode"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if typeof(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
-	if typeof(args[1]) ~= "string" then
-		return false, "[json-decode] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
-	end
+	
 	local success, result, msg = pcall(function()
-		return game:GetService("HttpService"):JSONDecode(args[1])
+		return jsonObjToTable(args[1])
 	end)
 	if not success then return false, msg or "decode error." end
 	return true, result

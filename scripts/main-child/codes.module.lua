@@ -41,7 +41,13 @@ return {
 (worker)
 ]],[[(clear)
 (var normalABC [])
-(for (alphabet 26) i2 v2 (var r (random 11 99)) (var g (random 11 99)) (var b (random 11 99)) (var normalABC (listadd (get normalABC) (format "<font color='#{1}{2}{3}'>{v2}</font>" (get r) (get g) (get b)))) (print (get normalABC)))
+(for (alphabet 26) i2 v2
+	(var r (random 11 99))
+	(var g (random 11 99))
+	(var b (random 11 99))
+	(var normalABC (listadd (get normalABC) "<font color='#{r}{g}{b}'>{v2}</font>"))
+	(print {normalABC})
+)
 ]],[[
 (var string "Hello big world.")
 (var r [])
@@ -56,18 +62,19 @@ return {
 (print (format "Done. Result: {1}" (round {result})))
 ]],[[(for (readdir root) i v
   (if (ends? {v} /)
-      (println "{v}:" (readdir (format "root/{1}" (crop {v} 1 -2))))
+	  (var read (readdir (format "root/{1}" (crop {v} 1 -2))) )
+      (println "{v}:" {read})
   )
 )
 ]],[[(print "sup.")
-]],[[
-(var get (http-get "http://api.open-notify.org/iss-now.json"))
+]],[[(print (format "Hello {1}!" (prompt "What is your name?")))
+]],[[(var get (json-decode (http-get "http://api.open-notify.org/iss-now.json")))
 (var cords (listget {get} 3)) ; change this number to 1 at 3 if you are getting errors, this is a iss-now.json issue.
 (print (format "current ISS, latitude: {1} and longitude: {2}" (listget {cords} 1) (listget {cords} 2)))
 ]],[[
 (var body (object "message" "Hello World!"))
 
-(var post (http-post "https://postman-echo.com/post" {body}))
+(var post (json-decode (http-post "https://postman-echo.com/post" {body})))
 (print {post})
 ]]
 }

@@ -4,22 +4,6 @@ local temporary = ReplicatedStorage:WaitForChild("temporary")
 
 local utils = require(script.Parent.utils)
 
-function tableToString(list)
-	local dat = "["
-	if typeof(list) ~= "table" then
-		return nil
-	end
-	for i, v in list do
-		if typeof(v) == "table" then
-			v = tableToString(v)
-		end
-
-		if i == #list then dat = dat .. tostring(v)
-		else dat = dat .. tostring(v) .. ", " end
-	end
-	dat = dat .. "]" return dat
-end
-
 function args_handler:indexArgHandler(v: string, arguments: {any}?)
 	v = tostring(v)
 
@@ -37,7 +21,7 @@ function args_handler:indexArgHandler(v: string, arguments: {any}?)
 	elseif v == "nil" then
 		v = nil
 	else
-		for _, v_var in pairs(temporary.values:GetChildren()) do
+		--[[for _, v_var in pairs(temporary.values:GetChildren()) do
 			if v_var:IsA("StringValue") then
 				local togoV = v_var.Value
 
@@ -71,15 +55,15 @@ function args_handler:indexArgHandler(v: string, arguments: {any}?)
 					final = '"' .. string.gsub(togoV, '"', "_$#@¨COMMA_CHAR¨@#$_") .. '"'
 				end
 
-				--[[local final = togo
-				if string.sub(tostring(togoV), 1, 1) == "{" and string.sub(tostring(togoV), -1, -1) == "}" then
-					final = '"' .. togoV .. '"'
-				end]]
+				--local final = togo
+				--if string.sub(tostring(togoV), 1, 1) == "{" and string.sub(tostring(togoV), -1, -1) == "}" then
+				--	final = '"' .. togoV .. '"'
+				--end
 
 				final = final:gsub("%%", "#")
 				v = v:gsub("{" .. v_var.Name .. "}", final)
 			end
-		end
+		end]]
 
 		local constants = require(script.Parent.constants)()
 		if typeof(v) == "string" then

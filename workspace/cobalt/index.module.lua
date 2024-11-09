@@ -24,6 +24,55 @@ temporary.clear = function()
 		end
 	end
 end
+
+function testConvert(v)
+	v = tostring(v)
+	for _, v_var in pairs(temporaryFolder.values:GetChildren()) do
+		if v_var:IsA("StringValue") then
+			local togoV = v_var.Value
+
+			if togoV == "true" then
+				togoV = true
+			elseif togoV == "false" then
+				togoV = false
+			elseif togoV == "nil" then
+				togoV = nil
+			end
+
+			local toNumberPcallSuccess, r = pcall(function() return tonumber(tostring(togoV)) end)
+			local togo = tostring(togoV)
+			if string.find(tostring(togoV), " ") then
+				togo = '"' .. tostring(togoV) .. '"'
+			end
+
+			if toNumberPcallSuccess and r ~= nil then
+				togo = tostring(r)
+			end
+
+			if typeof(togoV) == "boolean" then
+				togo = tostring(togoV)
+			elseif typeof(togoV) == "string" and string.sub(togoV, 1, 1) == "[" and string.sub(togoV, -1, -1) == "]" then
+				togo = togoV
+			end
+
+
+			local final = togo
+			if string.sub(tostring(togoV), 1, 1) == "{" and string.sub(tostring(togoV), -1, -1) == "}" then
+				final = '"' .. string.gsub(togoV, '"', "_$#@¨COMMA_CHAR¨@#$_") .. '"'
+			end
+
+			--local final = togo
+			--if string.sub(tostring(togoV), 1, 1) == "{" and string.sub(tostring(togoV), -1, -1) == "}" then
+			--	final = '"' .. togoV .. '"'
+			--end
+
+			final = final:gsub("%%", "#")
+			v = v:gsub("{" .. v_var.Name .. "}", final)
+		end
+	end
+	return v
+end
+
 function splitParentheses(str)
 	local result = {}
 	local level = 0
@@ -121,6 +170,14 @@ function me:run(code, rawArgs, console, mr)
 			-- native functions:
 			local function describe(value, expected)
 				-- function, string, boolean, number, list.
+				value = testConvert(value)
+				local toNumberPcallSuccess, r = pcall(function() return tonumber(tostring(value)) end)
+				if toNumberPcallSuccess and r ~= nil then
+					value = tonumber(tostring(value))
+				end
+				--warn(value)
+				--warn(typeof(value))
+				
 				local canStringfy = false
 				local vType = typeof(value)
 
@@ -129,7 +186,7 @@ function me:run(code, rawArgs, console, mr)
 				elseif vType == "boolean" and expected == "string" then
 					canStringfy = true
 				end
-
+				
 				if vType == "string" then -- must have 2 checks, if is a TRUE string or a function.
 					if value:sub(1, 1) == '(' and value:sub(-1) == ')' then
 						local functionName = value:sub(2, -2):split(" ")[1]
@@ -188,7 +245,7 @@ function me:run(code, rawArgs, console, mr)
 
 				local funcRefFunc = refs[base_funcName]
 				if not funcRefFunc then return {false, "Function reference doesn't exists. (prob of a huge bug)"} end
-
+				
 				local state, data, refuseStop = funcRefFunc(base_args, {
 					p = lp,
 					root = cd,
@@ -264,11 +321,11 @@ function me:run(code, rawArgs, console, mr)
 		temporary:clear()
 		return {false, returns, true}
 	elseif typeof(returns) == "table" and returns[1] == false then
-		temporary:clear()
+		--temporary:clear()
 		return {false, returns[2]}
 	else
 		if not returns then
-			temporary:clear()
+			--temporary:clear()
 			return {true}
 		else
 			return returns

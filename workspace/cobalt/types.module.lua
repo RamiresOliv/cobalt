@@ -730,7 +730,7 @@ exports.mapping = {
 		returns = "string",
 	},
 	["json-encode"] = {
-		description = "Returns a JSON string by the given value.",
+		description = "Returns a JSON string native translated by the given value.",
 		requiredEntries = 1,
 		params = {"any"},
 		returns = "string",

@@ -68,7 +68,6 @@ a.init = function(ui, onClick, popup, getPageData)
 		disable(nil, ui)
 		compiler:forceOpen()
 		local answer = compiler:custom(ui.Editor.TextBox.Text)
-		print(answer)
 		if answer == false then
 			--disable(nil, ui)
 			editor:forceOpen()

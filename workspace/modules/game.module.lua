@@ -1,6 +1,6 @@
 local g = {}
 
 g.version = "1.3.6"
-g.versionName = "cobalt functions bugs fix, new ui features."
+g.versionName = "args rework, bugs fix, http rework"
 
 return g
