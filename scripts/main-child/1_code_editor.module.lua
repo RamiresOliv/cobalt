@@ -5,6 +5,11 @@ a.settings = {
 	page_obj_name = "code_editor",
 }
 
+local syntax = require(script.highlight)
+function updateHighlight(ui)
+	ui.Editor.TextBox.highlight.Text = syntax.run(ui.Editor.TextBox.Text)
+end
+
 function updateLineCounts(ui)
 	local _, num = ui.Editor.TextBox.Text:gsub("\n", "")
 
@@ -46,7 +51,9 @@ a.init = function(ui, onClick, popup, getPageData)
 	end)
 	
 	updateLineCounts(ui)
+	updateHighlight(ui)
 	ui.Editor.TextBox:GetPropertyChangedSignal("Text"):Connect(function()
+		updateHighlight(ui)
 		updateLineCounts(ui)
 	end)
 	

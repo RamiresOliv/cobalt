@@ -1,6 +1,6 @@
 local g = {}
 
-g.version = "1.3.6"
-g.versionName = "args rework, bugs fix, http rework"
+g.version = "1.5.0"
+g.versionName = "highlight added, bug fixes"
 
 return g

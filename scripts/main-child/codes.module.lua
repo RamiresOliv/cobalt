@@ -1,14 +1,14 @@
 return {
-[[(if (== (exists? couting.txt) false)
+[[(if (== (exists? "couting.txt") false)
 	(mkfile . couting.txt "file created!") ; creates a file (mkfile path name content)
 )
 
 (for (prompt "times?") i
 	(delay 0)
-	(edit couting.txt {i}) ; edits a file (mkfile path+name content)
+	(edit "couting.txt" {i}) ; edits a file (mkfile path+name content)
 )
 
-(print (format "final file read: {1}" (read couting.txt)))
+(print (format "final file read: {1}" (read "couting.txt")))
 ]],
 [[(function comparative value
   (return (== (type {value}) "string"))
@@ -45,7 +45,7 @@ return {
 	(var r (random 11 99))
 	(var g (random 11 99))
 	(var b (random 11 99))
-	(var normalABC (listadd (get normalABC) "<font color='#{r}{g}{b}'>{v2}</font>"))
+	(var normalABC (listadd (get "normalABC") "<font color='#{r}{g}{b}'>{v2}</font>"))
 	(print {normalABC})
 )
 ]],[[
@@ -53,9 +53,9 @@ return {
 (var r [])
 
 (for (split {string}) i v
-  (var r (listadd (get r) (replace {v} "%." " ")))
+  (var r (listadd (get "r") (replace {v} "%." " ")))
 )
-(print (get r)) ; ["Hello", "big", "world"]
+(print (get "r")) ; ["Hello", "big", "world"]
 ]],[[(var startTick (tick))
 (delay 5)
 (var result (/ (floor (* (- (tick) {startTick}) 100)) 100))

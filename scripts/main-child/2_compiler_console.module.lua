@@ -26,9 +26,11 @@ function disable(button_frame, ui, state)
 end
 
 running = false
+local connection = nil
 local function worker(ui, console, button_frame)
 	console:newInput("Write here!")
-	console.inputEvent:Once(function(content: string)
+	connection = console.inputEvent:Once(function(content: string)
+		if running then return end
 		local text = ui.input.Text
 		if text == "draw_cobalt" then
 			console:write(console:color([[
@@ -75,11 +77,11 @@ local function worker(ui, console, button_frame)
 				end
 			end
 		end
+		running = false
 		button_frame.content.Text = b_text
 		ui.input.AutomaticSize = Enum.AutomaticSize.Y
 		ui.input.TextColor3 = Color3.new(0.631373, 0.631373, 0.631373)
 		ui.input.TextEditable = true
-		running = false
 		worker(ui, console, button_frame)
 		console:inputFocus()
 	end)
@@ -157,6 +159,12 @@ a.init = function(ui, button_frame)
 		ui.input.TextColor3 = Color3.new(0.631373, 0.631373, 0.631373)
 		ui.input.TextEditable = true
 		running = false
+		if not connection or connection.Connected ~= true then
+			--warn("not connected, so doing.")
+			worker(ui, console, button_frame)
+		--[[else
+			warn("connected, so ignoring.")]]
+		end
 		return true;
 	end;
 end
