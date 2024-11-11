@@ -1,6 +1,6 @@
 return {
 [[(if (== (exists? "couting.txt") false)
-	(mkfile . couting.txt "file created!") ; creates a file (mkfile path name content)
+	(mkfile "." "couting.txt" "file created!") ; creates a file (mkfile path name content)
 )
 
 (for (prompt "times?") i
