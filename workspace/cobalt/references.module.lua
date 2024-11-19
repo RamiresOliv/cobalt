@@ -539,11 +539,13 @@ refs["for"] = function(args, utils) -- complex
 			c = c:gsub("{" .. (loopArgs[2] or "_value") .. "}", tostring(translated_v))
 
 			local r, returns = require(p.index):run(c, nil, utils.console, true)
+			
+			warn(r)
 
 			if r[1] == false then return false, "[for] function error [" .. tostring(i) .. "]: " .. r[2] end
-			--[[if r[2] then
+			if r[2] and typeof(r[2]) == "string" and string.sub(r[2], 1, 9) == "_-!@!_-!-" then
 				return true, returns or r[2]
-			end]]
+			end
 		end
 	end
 	if typeof(operator) == "table" then
@@ -562,6 +564,8 @@ refs["for"] = function(args, utils) -- complex
 	elseif typeof(operator) == "number" then
 		for index = 1, operator do
 			local a, b = loopa(index, "nil")
+			
+			print(b)
 
 			if a ~= nil then
 				if b == "_-!@!_-!-continue-skip-this-thing-rn!" then
