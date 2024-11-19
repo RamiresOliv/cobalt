@@ -820,7 +820,7 @@ exports.paramsNames = {
 	list = "table",
 };
 
-exports.constants = {
+exports.natives = {
 	E = 2.71828,
 	PI = math.pi,
 	ZERO = 0,

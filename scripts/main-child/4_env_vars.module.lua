@@ -18,6 +18,7 @@ end
 
 a.settings = {
 	name = "Env. Vars",
+	page_obj_name = "env_vars",
 }
 
 a.init = function(ui, onClick)
