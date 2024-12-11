@@ -48,7 +48,7 @@ table.insert(keywords.cobalt, "else")
 
 local colors = {
 	numbers = 			Color3.fromRGB(255, 247, 189),
-	boolean = 			Color3.fromRGB(255, 247, 189),
+	boolean = 			Color3.fromRGB(255, 217, 155),
 	null = 				Color3.fromRGB(255, 247, 189),
 	operator = 			Color3.fromRGB(255, 247, 189),
 	function_call = 	Color3.fromRGB(130, 170, 255),

@@ -108,6 +108,7 @@ a.init = function(ui, button_frame)
 	ReplicatedStorage.global.values.user_name.Value = tostring(player.DisplayName) or "usr"
 	ReplicatedStorage.global.values.pc_name.Value = "desktop-" .. tostring(player.UserId) or "desktop-unknown"
 	
+	running = false
 	worker(ui, console, button_frame)
 	return enable, disable, function(self, text)
 		if running then return false end

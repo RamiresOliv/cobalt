@@ -539,8 +539,6 @@ refs["for"] = function(args, utils) -- complex
 			c = c:gsub("{" .. (loopArgs[2] or "_value") .. "}", tostring(translated_v))
 
 			local r, returns = require(p.index):run(c, nil, utils.console, true)
-			
-			warn(r)
 
 			if r[1] == false then return false, "[for] function error [" .. tostring(i) .. "]: " .. r[2] end
 			if r[2] and typeof(r[2]) == "string" and string.sub(r[2], 1, 9) == "_-!@!_-!-" then
@@ -565,8 +563,6 @@ refs["for"] = function(args, utils) -- complex
 		for index = 1, operator do
 			local a, b = loopa(index, "nil")
 			
-			print(b)
-
 			if a ~= nil then
 				if b == "_-!@!_-!-continue-skip-this-thing-rn!" then
 					continue
@@ -1846,7 +1842,6 @@ refs["neg"] = function(args, utils)
 end
 refs["+"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
-	print(args)
 	if typeof(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 	if typeof(args[1]) ~= "number" then
 		return false, "[+] expected a number but received [1]: '" .. _local.typeof(args[1]) .. "'"

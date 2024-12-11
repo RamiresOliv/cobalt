@@ -30,40 +30,54 @@ function load(ui)
 	for name, data in cobalt_types.mapping do
 		local f = ui.templates.gaming_frame:Clone()
 		f.Name = name;
-		
+
+		local nameFunc = string.format("<font color = \"#%s\">%s</font>", "ff707a", name:gsub("<", "&lt;"):gsub(">", "&gt;"))
+		local paramsTextTextBox;
 		local paramsText;
 		if #data.params > 0 then
-			paramsText = "(" .. tostring(name) .. " "
+			paramsText = "(" .. nameFunc .. " "
+			paramsTextTextBox = "(" .. name .. " "
 			local paramsTexted = ""
+			local paramsTextedTextBox = ""
 
 			for i, v in pairs(data.params) do
 				if i == #data.params then
 					if i > data.requiredEntries then
-						paramsTexted = paramsTexted .. "<" .. v .. ">"
+						paramsTextedTextBox = paramsTextedTextBox .. "[" .. v .. "]"
+						paramsTexted = paramsTexted .. string.format("<font color = \"#%s\">[%s]</font>", "fff7bd", v:gsub("<", "&lt;"):gsub(">", "&gt;"))
 					else
-						paramsTexted = paramsTexted .. "[" .. v .. "]"
+						paramsTextedTextBox = paramsTextedTextBox .. "|" .. v .. "|"
+						paramsTexted = paramsTexted .. string.format("<font color = \"#%s\">|%s|</font>", "ffd99b", v:gsub("<", "&lt;"):gsub(">", "&gt;"))
 					end
 				else
 					if i > data.requiredEntries then
-						paramsTexted = paramsTexted .. "<" .. v .. "> "
+						paramsTextedTextBox = paramsTextedTextBox .. "[" .. v .. "] "
+						paramsTexted = paramsTexted .. string.format("<font color = \"#%s\">[%s]</font> ", "fff7bd", v:gsub("<", "&lt;"):gsub(">", "&gt;"))
 					else
-						paramsTexted = paramsTexted .. "[" .. v .. "] "
+						paramsTextedTextBox = paramsTextedTextBox .. "|" .. v .. "| "
+						paramsTexted = paramsTexted .. string.format("<font color = \"#%s\">|%s|</font> ", "ffd99b", v:gsub("<", "&lt;"):gsub(">", "&gt;"))
 					end
 				end
 			end
 			paramsText = paramsText .. paramsTexted
+			paramsTextTextBox = paramsTextTextBox .. paramsTextedTextBox
 		else
-			paramsText = "(" .. tostring(name)
+			paramsText = "(" .. nameFunc
+			paramsTextTextBox = "(" .. name
 		end
 
 		if data.openEntries == true then
 			paramsText = paramsText .. " ...): "
+			paramsTextTextBox = paramsTextTextBox .. " ...): "
 		else
 			paramsText = paramsText .. "): "
+			paramsTextTextBox = paramsTextTextBox .. "): "
 		end
 		paramsText = paramsText .. tostring(data.returns)
-		
-		f["1_title"].Text = paramsText;
+		paramsTextTextBox = paramsTextTextBox .. tostring(data.returns)
+
+		f["1_title"].Text = paramsTextTextBox;
+		f["1_title"].display.Text = paramsText;
 		f["2_desc"].Text = data.description;
 		f.Parent = ui.list;
 		f.Visible = true;
@@ -76,14 +90,14 @@ a.init = function(ui, onClick)
 			v.Visible = false
 		end
 	end
-	
+
 	load(ui)
-	
+
 	ui.searchInput:GetPropertyChangedSignal("Text"):Connect(function()
 		local text: string = ui.searchInput.Text
-		
+
 		text = text:gsub(" ", "")
-		
+
 		if #text > 0 then
 			for i, v: Instance in pairs(ui.list:GetChildren()) do
 				if not v:IsA("Frame") then continue end
@@ -101,12 +115,12 @@ a.init = function(ui, onClick)
 			end
 		end
 	end)
-	
+
 	return enable, disable;
 end
 
 return a
-	
+
 	--[[
 	
 function loadPage(p, name, template)

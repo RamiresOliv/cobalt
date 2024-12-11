@@ -1,6 +1,6 @@
 local g = {}
 
-g.version = "1.5.5"
-g.versionName = "small ui fixes"
+g.version = "1.6.0"
+g.versionName = "ui fixes & changes + bug fixes"
 
 return g
