@@ -18,7 +18,7 @@ stoploop = false
 spawn(function()
 	repeat
 		pcall(function()
-			StarterGui:SetCore("TopbarEnabled", false)
+			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false)
 		end)
 		wait(.1)
 	until true == true

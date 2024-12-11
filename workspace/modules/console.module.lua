@@ -127,7 +127,7 @@ function console.init(player, templates: Folder, c: ScrollingFrame)
 	function self:newInput(text)
 		local inputData = {}
 		
-		local input: TextBox = c.Parent.input
+		local input: TextBox = c.Parent:WaitForChild("2_input")
 		input.PlaceholderText = (tostring(text) or "")
 	
 		self.inputEventConnection = input.FocusLost:Connect(function(enterPressed)
@@ -147,7 +147,7 @@ function console.init(player, templates: Folder, c: ScrollingFrame)
 	function self:askUser(placeHolder)
 		local inputData = {}
 
-		local input: TextBox = c.Parent.input
+		local input: TextBox = c.Parent:WaitForChild("2_input")
 		local text = input.Text
 		input.Text = ""
 		input.TextEditable = true
@@ -171,11 +171,11 @@ function console.init(player, templates: Folder, c: ScrollingFrame)
 	end
 
 	function self:inputFocus(data)
-		c.Parent.input:CaptureFocus()
+		c.Parent:WaitForChild("2_input"):CaptureFocus()
 	end
 	
 	function self:inputSet(data)
-		c.Parent.input.Text = (tostring(data) or "...")
+		c.Parent:WaitForChild("2_input").Text = (tostring(data) or "...")
 	end
 	
 	function self:color(text: string, profile: string)

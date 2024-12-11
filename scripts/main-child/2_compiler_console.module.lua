@@ -28,10 +28,12 @@ end
 running = false
 local connection = nil
 local function worker(ui, console, button_frame)
+	local input = ui:WaitForChild("2_input")
+	
 	console:newInput("Write here!")
 	connection = console.inputEvent:Once(function(content: string)
 		if running then return end
-		local text = ui.input.Text
+		local text = input.Text
 		if text == "draw_cobalt" then
 			console:write(console:color([[
       ___           ___           ___           ___           ___       ___     
@@ -50,9 +52,9 @@ local function worker(ui, console, button_frame)
 			return;
 		end
 		console:write(text, "muted")
-		ui.input.TextEditable = false
-		ui.input.AutomaticSize = Enum.AutomaticSize.X
-		ui.input.TextColor3 = Color3.new(0.223529, 0.223529, 0.223529)
+		input.TextEditable = false
+		input.AutomaticSize = Enum.AutomaticSize.X
+		input.TextColor3 = Color3.new(0.223529, 0.223529, 0.223529)
 		local b_text = button_frame.content.Text
 		button_frame.content.Text = "[r] " .. b_text
 		running = true
@@ -79,16 +81,17 @@ local function worker(ui, console, button_frame)
 		end
 		running = false
 		button_frame.content.Text = b_text
-		ui.input.AutomaticSize = Enum.AutomaticSize.Y
-		ui.input.TextColor3 = Color3.new(0.631373, 0.631373, 0.631373)
-		ui.input.TextEditable = true
+		input.AutomaticSize = Enum.AutomaticSize.Y
+		input.TextColor3 = Color3.new(0.631373, 0.631373, 0.631373)
+		input.TextEditable = true
 		worker(ui, console, button_frame)
 		console:inputFocus()
 	end)
 end
 
 a.init = function(ui, button_frame)
-	local console = modules.console.init(player, ui:WaitForChild("templates"), ui:WaitForChild("logs"))
+	local console = modules.console.init(player, ui:WaitForChild("templates"), ui:WaitForChild("1_logs"))
+	local input = ui:WaitForChild("2_input")
 
 	local language = require(ReplicatedStorage.cobalt.language)
 	console:write(console:color(`{language.name} {language.version} (language version & compiler version)`, "highlight"))
@@ -127,9 +130,9 @@ a.init = function(ui, button_frame)
 			return;
 		end
 		console:write(text, "muted")
-		ui.input.TextEditable = false
-		ui.input.AutomaticSize = Enum.AutomaticSize.X
-		ui.input.TextColor3 = Color3.new(0.223529, 0.223529, 0.223529)
+		input.TextEditable = false
+		input.AutomaticSize = Enum.AutomaticSize.X
+		input.TextColor3 = Color3.new(0.223529, 0.223529, 0.223529)
 		local b_text = button_frame.content.Text
 		button_frame.content.Text = "[r] " .. b_text
 		running = true
@@ -155,9 +158,9 @@ a.init = function(ui, button_frame)
 			end
 		end
 		button_frame.content.Text = b_text
-		ui.input.AutomaticSize = Enum.AutomaticSize.Y
-		ui.input.TextColor3 = Color3.new(0.631373, 0.631373, 0.631373)
-		ui.input.TextEditable = true
+		input.AutomaticSize = Enum.AutomaticSize.Y
+		input.TextColor3 = Color3.new(0.631373, 0.631373, 0.631373)
+		input.TextEditable = true
 		running = false
 		if not connection or connection.Connected ~= true then
 			--warn("not connected, so doing.")
