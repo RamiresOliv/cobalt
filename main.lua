@@ -19,7 +19,7 @@ end
 local filepath = arg[1]
 if filepath then
     table.remove(arg, 1)
-    
+
     args = ""
     if #arg > 0 then
         args = tableToString(arg)
@@ -31,7 +31,7 @@ if filepath then
 end
 
 function header()
-    print("Cobalt " .. tostring(language.version) .. " (" .. _VERSION .. ")")
+    print("Cobalt " .. tostring(language.version) .. " (" .. _VERSION .. ") https://github.com/RamiresOliv/cobalt")
     print("declare 'help' for functions list and syntax assist.")
     print("you can exit using 'exit' or CTRL+C")
 end
