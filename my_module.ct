@@ -1,2 +1,6 @@
+; my_module.ct
+; You can use {%1}, {%2}, {%3} ... for call arguments for the module when called.
+
 (print "Hello {%1} and World from my_module!")
-(return "Here is this important string!")
+(return "Here is this important string!") ; to return the cool string
+(print "Nothing after return's will work.")
