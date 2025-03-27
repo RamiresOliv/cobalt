@@ -1,0 +1,2 @@
+(print "Hello {%1} and World from my_module!")
+(return "Here is this important string!")
