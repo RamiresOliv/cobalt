@@ -1,4 +1,4 @@
-local cobalt = require("call") -- path.to.cobalt (cobalt.lua)
+local cobalt = require("call") -- path.to.call (call.lua)
 
 local returns = cobalt('(require "my_module.ct" [(prompt "Your name is?")])', true) -- calling module and sending an argument
 -- returns a table
