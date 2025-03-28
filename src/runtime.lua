@@ -1,23 +1,17 @@
 local json = require("modules.dkjson")
 local fs = require("src.filesystem")
+local metadata = require("src.metadata")
 
-local memory = {
-    global = {
-        values = {
-            cd = { Value = "root" }  -- idk
-        }
-    },
-    root = { 
-        Name = "root", 
-        Parent = nil, 
-        Children = {}  -- idkddddddddddd
-    }
-}
+
+local script_dir_raw = debug.getinfo(1, "S").source:sub(2):match("(.+)[/\\]")
+local script_dir = ""
+if script_dir_raw ~= ".\\src" then script_dir = script_dir_raw .. "\\..\\" end
+
 local temporary = {
     paths = {
-      http = "temporary/http",
-      functions = "temporary/functions",
-      values = "temporary/values"
+        http = "./temp/client",
+        functions = "./temp/funcs",
+        variables = "./temp/vars"
     }
 }
 
@@ -49,33 +43,6 @@ _local.hexToString = function(str)
     return (str:gsub('..', function(c)
         return string.char(tonumber(c, 16))
     end))
-end
-
-
-_local.getPath = function(dir, utils) -- to rework
-    if dir == "root" then
-        return true, memory.root
-    end
-    local parts = {}
-    for part in string.gmatch(dir, "[^/]+") do
-        table.insert(parts, part)
-    end
-    local current = memory.root
-    for i = 2, #parts do
-        current = fs.check(current.Children or {}, parts[i])
-        if not current then return false, "path not found" end
-    end
-    return true, current
-end
-
-_local.getFullPath = function(instance, utils) -- to rework
-    local path = instance.Name
-    local current = instance.Parent
-    while current do
-        path = current.Name .. "/" .. path
-        current = current.Parent
-    end
-    return path
 end
 
 _local.tableToString = function(list)
@@ -144,9 +111,8 @@ local function resolve_args(v, utils, allowSpecificReturns)
     end
 
     if _local.typeof(v) == "string" then
-        -- Substituição de variáveis temporárias (simulando temporary.values)
-        for _, file in ipairs(fs.list(temporary.paths.values)) do
-            local filePath = temporary.paths.values .. "/" .. file
+        for _, file in ipairs(fs.list(script_dir .. temporary.paths.variables)) do
+          local filePath = script_dir .. temporary.paths.variables .. "/" .. file
             local togoV = fs.read(filePath)
             if togoV == "true" then
                 togoV = true
@@ -175,9 +141,8 @@ local function resolve_args(v, utils, allowSpecificReturns)
             final = final:gsub("%%", "#")
             v = v:gsub("{" .. file .. "}", final)
         end
-        local constants = require("src.constants")()  -- módulo de constantes
         if _local.typeof(v) == "string" then
-            for i_, v_ in pairs(constants) do
+            for i_, v_ in pairs(metadata:constants()) do
                 v = v:gsub("{" .. tostring(i_) .. "}", tostring(v_))
             end
         end
@@ -185,7 +150,7 @@ local function resolve_args(v, utils, allowSpecificReturns)
 
     local thingToReturn = nil
     if _local.typeof(v) == "string" and v:sub(1, 1) == '(' and v:sub(-1) == ')' then
-        local compilation = require("src.index"):run(v, nil, true)
+        local compilation = require("src.core"):run(v, nil, true)
         thingToReturn = compilation[4]
         if compilation[1] == false then
             if _local.typeof(compilation[2]) == "list" then
@@ -320,18 +285,18 @@ _local.resolveSpecificArgs = function(args, utils, allowSpecificReturns)
 end
 
 ----------------------------------------
--- Tabela de Referências (refs)
-local refs = { _self = {} }
+-- Tabela de Referências (runtime)
+local runtime = { _self = {} }
 
-refs._self.refs_size = function()
+runtime._self.runtime_size = function()
     local size = 0
-    for _ in pairs(refs) do
+    for _ in pairs(runtime) do
         size = size + 1
     end
     return size - 1
 end
 
-refs["var"] = function(args, utils)
+runtime["var"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
     if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
@@ -340,23 +305,8 @@ refs["var"] = function(args, utils)
         return false, "[var] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
     end
 
-    --[[
-    local ffc = fs.check(memory.temporary.values, tostring(args[1]))
-    if ffc then
-        ffc.Value = (_local.typeof(args[2]) == "list" and json.encode(args[2]) or tostring(args[2]))
-    else
-        local variable = { Name = tostring(args[1]), Value = nil, Type = "StringValue" }
-        table.insert(memory.temporary.values, variable)
-        if _local.typeof(args[2]) == "list" then
-            variable.Value = json.encode(args[2])
-        else
-            variable.Value = tostring(args[2])
-        end
-    end]]
-
-    -- Define the folder path where functions are stored as files
-	local folderPath = "temporary/values"  -- This folder must exist in your file system
-	local filePath = folderPath .. "/" .. tostring(args[1])
+	local folderPath = script_dir .. temporary.paths.variables
+    local filePath = folderPath .. "/" .. tostring(args[1])
 
     local content = "unknown?"
     if _local.typeof(args[2]) == "list" then
@@ -371,10 +321,10 @@ refs["var"] = function(args, utils)
 		file:close()
 		return true
 	else
-		return false, "Unable to write function-file: " .. filePath
+		return false, "Unable to write variable-file: " .. filePath
 	end
 end
-refs["prompt"] = function(args, utils)
+runtime["prompt"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
@@ -390,7 +340,7 @@ refs["prompt"] = function(args, utils)
 	local r = _local.stringToHex(answer)
 	return true, "_!str!_-" .. tostring(r)
 end
-refs["pairs"] = function(args, utils)
+runtime["pairs"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
     if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
@@ -405,7 +355,7 @@ refs["pairs"] = function(args, utils)
     return true, togo
 end
 
-refs["ipairs"] = function(args, utils)
+runtime["ipairs"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
     if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
@@ -419,23 +369,23 @@ refs["ipairs"] = function(args, utils)
     end
     return true, togo
 end
-refs["run"] = function(args, utils)
-	local s, a = require("src.index"):run(table.concat(args, " "), nil, true)
+runtime["run"] = function(args, utils)
+	local s, a = require("src.core"):run(table.concat(args, " "), nil, true)
 	return true, {s[1], a or s[2] or nil}
 end
-refs["spawn"] = function(args, utils)
+runtime["spawn"] = function(args, utils)
 	if not type(args[1]) then
 		return false, "[spawn] expected a any value but received [1]: '" .. _local.typeof(args[1]) .. "'"
 	end
 
     local co = coroutine.create(function()
-		require("src.index"):run(table.concat(args, " "), nil, true)
+		require("src.core"):run(table.concat(args, " "), nil, true)
 	end)
     coroutine.resume(co)
 
 	return true
 end
-refs["get"] = function(args, utils)
+runtime["get"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
     if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
@@ -443,7 +393,7 @@ refs["get"] = function(args, utils)
     if not args[1] or _local.typeof(args[1]) ~= "string" then
         return false, "[get] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
     end
-    local ffc = fs.check(temporary.values, tostring(args[1]))
+    local ffc = fs.check(temporary.paths.variables .. "/" .. tostring(args[1]))
     local val = nil
     if ffc then
         val = ffc.Value
@@ -451,7 +401,7 @@ refs["get"] = function(args, utils)
     return true, val
 end
 
-refs["print"] = function(args, utils)
+runtime["print"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
     if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
@@ -510,7 +460,7 @@ refs["print"] = function(args, utils)
     return true
 end
 
-refs["println"] = function(args, utils)
+runtime["println"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
     if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
@@ -566,13 +516,13 @@ refs["println"] = function(args, utils)
     return true
 end
 
-refs["clear"] = function(args, utils)
+runtime["clear"] = function(args, utils)
     -- Em ambiente de console, clear pode ser simulado imprimindo uma separação
     os.execute("cls")
     return true
 end
 
-refs["for"] = function(args, utils)
+runtime["for"] = function(args, utils)
     local operator = _local.resolveSpecificArgs(table.remove(args, 1), utils)
     if _local.typeof(operator) == "list" and operator[1] == "_!!dDecodePSCFail!!_" then 
         return false, operator[2] 
@@ -596,7 +546,7 @@ refs["for"] = function(args, utils)
                 translated_v = _local.tableToString(translated_v)
             end
             c = c:gsub("{" .. (loopArgs[2] or "_value") .. "}", tostring(translated_v))
-            local r, returns = require("src.index"):run(c, nil, true)
+            local r, returns = require("src.core"):run(c, nil, true)
             if r[1] == false then 
                 return false, "[for] function error [" .. tostring(i) .. "]: " .. r[2] 
             end
@@ -632,7 +582,7 @@ refs["for"] = function(args, utils)
     end
     return true
 end
-refs["function"] = function(rawArgs, utils)
+runtime["function"] = function(rawArgs, utils)
 	local func_name = table.remove(rawArgs, 1)
 	local argsList = {}
 	local cmds = {}
@@ -647,7 +597,7 @@ refs["function"] = function(rawArgs, utils)
 		end
 	end
 
-	local folderPath = "temporary/functions"
+	local folderPath = script_dir .. temporary.paths.functions
 	local filePath = folderPath .. "/" .. tostring(func_name) .. ".json"
 
 	local data = {
@@ -665,7 +615,7 @@ refs["function"] = function(rawArgs, utils)
 		return false, "Unable to write function-file: " .. filePath
 	end
 end
-refs["if"] = function(args, utils)
+runtime["if"] = function(args, utils)
     local condition = table.remove(args, 1)
     local elseFound = false
     local true_commands = {}
@@ -714,7 +664,7 @@ refs["if"] = function(args, utils)
     return true, nil
 end
 
-refs["type"] = function(args, utils)
+runtime["type"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
     if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
@@ -723,28 +673,28 @@ refs["type"] = function(args, utils)
     if typeofit == "list" then typeofit = "list" elseif typeofit == "nil" then typeofit = "nil" end
     return true, typeofit
 end
-refs["true"] = function(args, utils)
+runtime["true"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
 	return true, (not not args[1])
 end
-refs["inf"] = function(args, utils)
+runtime["inf"] = function(args, utils)
 	return true, math.huge
 end
-refs["nothing"] = function(args, utils)
+runtime["nothing"] = function(args, utils)
 	return true, ""
 end
-refs["space"] = function(args, utils)
+runtime["space"] = function(args, utils)
 	return true, " "
 end
-refs["break"] = function(args, utils)
+runtime["break"] = function(args, utils)
     return true, "_-!@!_-!-break-and-stop-rn!"
 end
-refs["continue"] = function(args, utils)
+runtime["continue"] = function(args, utils)
     return true, "_-!@!_-!-continue-skip-this-thing-rn!"
 end
-refs["return"] = function(args, utils)
+runtime["return"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
     if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
@@ -753,7 +703,7 @@ refs["return"] = function(args, utils)
     table.insert(togo, args[1])
     return true, togo
 end
-refs["return-if"] = function(args, utils)
+runtime["return-if"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
@@ -771,7 +721,7 @@ refs["return-if"] = function(args, utils)
     --print(togo[2])
 	return true, togo
 end
-refs["not"] = function(args, utils)
+runtime["not"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
     if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
@@ -779,7 +729,7 @@ refs["not"] = function(args, utils)
     return true, (not args[1])
 end
 
-refs["and"] = function(args, utils)
+runtime["and"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
     local r = true
     for i, v in ipairs(args) do
@@ -795,7 +745,7 @@ refs["and"] = function(args, utils)
     return true, r
 end
 
-refs["or"] = function(args, utils)
+runtime["or"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
     local r = false
     for i, v in ipairs(args) do
@@ -811,7 +761,7 @@ refs["or"] = function(args, utils)
     return true, r
 end
 
-refs["=="] = function(args, utils)
+runtime["=="] = function(args, utils)
     args = _local.resolveArgs(args, utils)
     if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
@@ -819,7 +769,7 @@ refs["=="] = function(args, utils)
     return true, (args[1] or nil) == (args[2] or nil)
 end
 
-refs["!="] = function(args, utils)
+runtime["!="] = function(args, utils)
     args = _local.resolveArgs(args, utils)
     if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
@@ -827,7 +777,7 @@ refs["!="] = function(args, utils)
     return true, (args[1] or "_ITSNIL!!!!!!!!!") ~= (args[2] or "_ITSNIL!!!!!!!!!")
 end
 
-refs["nil?"] = function(args, utils)
+runtime["nil?"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
     if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
@@ -839,7 +789,7 @@ refs["nil?"] = function(args, utils)
     end
 end
 
-refs[">"] = function(args, utils)
+runtime[">"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
     if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
@@ -859,7 +809,7 @@ refs[">"] = function(args, utils)
     return true, r
 end
 
-refs["<"] = function(args, utils)
+runtime["<"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
     if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
@@ -879,7 +829,7 @@ refs["<"] = function(args, utils)
     return true, r
 end
 
-refs[">="] = function(args, utils)
+runtime[">="] = function(args, utils)
     args = _local.resolveArgs(args, utils)
     if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
@@ -899,7 +849,7 @@ refs[">="] = function(args, utils)
     return true, r
 end
 
-refs["<="] = function(args, utils)
+runtime["<="] = function(args, utils)
     args = _local.resolveArgs(args, utils)
     if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
@@ -918,7 +868,7 @@ refs["<="] = function(args, utils)
     end
     return true, r
 end
-refs["str"] = function(args, utils)
+runtime["str"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
@@ -930,7 +880,7 @@ refs["str"] = function(args, utils)
 	local hex = _local.stringToHex(toGo)
 	return true, "_!str!_-" .. tostring(hex)
 end
-refs["str!"] = function(args, utils)
+runtime["str!"] = function(args, utils)
 	local toGo = _local.concat(args, " ")
 	if toGo:sub(1, 1) == '"' and toGo:sub(-1) == '"' then
 		toGo = toGo:sub(2, -2)
@@ -939,7 +889,7 @@ refs["str!"] = function(args, utils)
 	local hex = _local.stringToHex(toGo)
 	return true, "_!str!_-" .. tostring(hex)
 end
-refs["color"] = function(args, utils)
+runtime["color"] = function(args, utils)
 	-- Define ANSI escape codes for terminal colors and styles
 	local colors = {
 		red     = "\27[31m",
@@ -1002,7 +952,7 @@ refs["color"] = function(args, utils)
 	local hex = _local.stringToHex(formatted)
 	return true, "_!str!_-" .. tostring(hex)
 end
-refs["format"] = function(args, utils)
+runtime["format"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
     if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
@@ -1018,7 +968,7 @@ refs["format"] = function(args, utils)
     local hex = _local.stringToHex(arg1)
     return true, "_!str!_-" .. tostring(hex)
 end
-refs["split"] = function(args, utils)
+runtime["split"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 	args[1] = tostring(args[1])
@@ -1030,7 +980,7 @@ refs["split"] = function(args, utils)
 	local list = string.split(args[1], tostring(args[2] or " "))
 	return true, _local.tableToString(list)
 end
-refs["replace"] = function(args, utils)
+runtime["replace"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
     if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
@@ -1041,7 +991,7 @@ refs["replace"] = function(args, utils)
     end
     return true, string.gsub(tostring(args[1]), tostring(args[2]), tostring(args[3]))
 end
-refs["len"] = function(args, utils)
+runtime["len"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
@@ -1050,7 +1000,7 @@ refs["len"] = function(args, utils)
 	end
 	return true, #args[1]
 end
-refs["reverse"] = function(args, utils)
+runtime["reverse"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
     if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
@@ -1070,7 +1020,7 @@ refs["reverse"] = function(args, utils)
     end
 end
 
-refs["upper"] = function(args, utils)
+runtime["upper"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
     if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
@@ -1082,7 +1032,7 @@ refs["upper"] = function(args, utils)
     return true, string.upper(tostring(args[1]))
 end
 
-refs["lower"] = function(args, utils)
+runtime["lower"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
     if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
@@ -1094,7 +1044,7 @@ refs["lower"] = function(args, utils)
     return true, string.lower(tostring(args[1]))
 end
 
-refs["upper?"] = function(args, utils)
+runtime["upper?"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
     if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
@@ -1123,7 +1073,7 @@ refs["upper?"] = function(args, utils)
     return true, found
 end
 
-refs["lower?"] = function(args, utils)
+runtime["lower?"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
     if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
@@ -1151,7 +1101,7 @@ refs["lower?"] = function(args, utils)
     end
     return true, found
 end
-refs["listadd"] = function(args, utils)
+runtime["listadd"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 	local list = table.remove(args, 1)
@@ -1168,7 +1118,7 @@ refs["listadd"] = function(args, utils)
 
 	return true, a
 end
-refs["listget"] = function(args, utils)
+runtime["listget"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 	local list = table.remove(args, 1)
@@ -1190,7 +1140,7 @@ refs["listget"] = function(args, utils)
 
 	return true, args
 end
-refs["listrem"] = function(args, utils)
+runtime["listrem"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 	local list = table.remove(args, 1)
@@ -1212,7 +1162,7 @@ refs["listrem"] = function(args, utils)
 
 	return true, _local.tableToString(list)
 end
-refs["join"] = function(args, utils)
+runtime["join"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
@@ -1224,7 +1174,7 @@ refs["join"] = function(args, utils)
 
 	return true, join
 end
-refs["starts?"] = function(args, utils)
+runtime["starts?"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
@@ -1239,7 +1189,7 @@ refs["starts?"] = function(args, utils)
 	-- args[2]: is the thing which I want to check the string if it has.
 	return true, (string.sub(args[1], 1, #args[2]) == args[2])
 end
-refs["ends?"] = function(args, utils)
+runtime["ends?"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
@@ -1252,7 +1202,7 @@ refs["ends?"] = function(args, utils)
 
 	return true, (string.sub(args[1], -#args[2], -1) == args[2])
 end
-refs["skip"] = function(args, utils)
+runtime["skip"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
@@ -1265,7 +1215,7 @@ refs["skip"] = function(args, utils)
 
 	return true, string.sub(args[1], args[2])
 end
-refs["crop"] = function(args, utils)
+runtime["crop"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
@@ -1282,7 +1232,7 @@ refs["crop"] = function(args, utils)
 
 	return true, string.sub(args[1], args[2], (args[3] or args[2]))
 end
-refs["first"] = function(args, utils)
+runtime["first"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
@@ -1295,7 +1245,7 @@ refs["first"] = function(args, utils)
 
 	return true, string.sub(args[1], 0, args[2])
 end
-refs["last"] = function(args, utils)
+runtime["last"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
@@ -1308,7 +1258,7 @@ refs["last"] = function(args, utils)
 
 	return true, string.sub(args[1], -args[2], -1)
 end
-refs["find"] = function(args, utils)
+runtime["find"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
@@ -1330,7 +1280,7 @@ refs["find"] = function(args, utils)
 		return true, table.find(args[1], args[2]) ~= nil
 	end
 end
-refs["sort"] = function(args, utils)
+runtime["sort"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
@@ -1344,7 +1294,7 @@ refs["sort"] = function(args, utils)
 	local toSortList = args[1]
 	local sortedList = {}
 	-- [1,3,2]: [1,2,3]
-	-- local returns = require("src.index"):run(`({args[2]} {v} {args[1][i+1]})`, nil, true)
+	-- local returns = require("src.core"):run(`({args[2]} {v} {args[1][i+1]})`, nil, true)
 
 	for i = 1, #toSortList - 1 do
 		for j = i + 1, #toSortList do
@@ -1357,7 +1307,7 @@ refs["sort"] = function(args, utils)
 			if type(v2) == "table" then
 				v2 = _local.tableToString(v2)
 			end
-			local returns = require("src.index"):run("(" ..  args[2] .. " " .. v1 .. " " .. v2 .. ")", nil, true)
+			local returns = require("src.core"):run("(" ..  args[2] .. " " .. v1 .. " " .. v2 .. ")", nil, true)
 
 			if returns[1] == false then
 				return false, "[sort] [2] function: "  .. (returns[2] or "")
@@ -1386,7 +1336,7 @@ refs["sort"] = function(args, utils)
 
 	return true, sortedList
 end
-refs["empty?"] = function(args, utils)
+runtime["empty?"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
@@ -1396,7 +1346,7 @@ refs["empty?"] = function(args, utils)
 
 	return true, (#args[1] == 0)
 end
-refs["range"] = function(args, utils)
+runtime["range"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
@@ -1411,7 +1361,7 @@ refs["range"] = function(args, utils)
 
 	return true, _local.tableToString(list)
 end
-refs["rpick"] = function(args, utils)
+runtime["rpick"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
@@ -1436,7 +1386,7 @@ refs["rpick"] = function(args, utils)
 
 	return true, r
 end
-refs["list"] = function(args, utils)
+runtime["list"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
@@ -1447,7 +1397,7 @@ refs["list"] = function(args, utils)
 
 	return true, _local.tableToString(list)
 end
-refs["listclr"] = function(args, utils)
+runtime["listclr"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
@@ -1461,7 +1411,7 @@ end
 
 -- here to do the FS"
 
-refs["alphabet"] = function(args, utils)
+runtime["alphabet"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
     if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
@@ -1486,7 +1436,7 @@ refs["alphabet"] = function(args, utils)
     end
     return true, _local.tableToString(alphass)
 end
-refs["require"] = function(args, utils)
+runtime["require"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
@@ -1510,24 +1460,32 @@ refs["require"] = function(args, utils)
     end
 
     local dir, file = args[1]:match("(.*/)([^/]+)$")
-    local scriptPath = fs.check((dir or io.popen"cd":read'*l'), (file or args[1]))
 
-	if not scriptPath then
+    local cd = io.popen"cd":read'*l'
+    if dir and string.sub(dir, 1, 1) == "." then
+        dir = string.sub(dir, 2)
+        dir = cd .. dir
+    end
+    --print(string.gsub(dir, "/", "\\") .. file)
+
+    local found = fs.check(args[1])
+
+	if not found then
 		return false, "[require] path is not a valid file: '" .. tostring(args[1]) .. "'"
 	end
 
-    local read = fs.read(scriptPath)
-	local s, r = require("src.index"):run(read or '(print (color "file read failed. Yes this is an error. Report this.", "red"))', arg2RealInput, false, true)
+    local read = fs.read(args[1])
+	local s, r = require("src.core"):run(read or '(print (color "file read failed. Yes this is an error. Report this.", "red"))', arg2RealInput, false, true)
 
 	if s and type(s) == "table" and s[1] == false then
 		return false, s[2]
     end
 	return true, s[2]
 end
-refs["clock"] = function(args, utils)
+runtime["clock"] = function(args, utils)
     return true, os.clock()
 end
-refs["delay"] = function(args, utils)
+runtime["delay"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
     if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
@@ -1541,7 +1499,7 @@ refs["delay"] = function(args, utils)
     end
     return true
 end
-refs["max"] = function(args, utils)
+runtime["max"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
@@ -1571,7 +1529,7 @@ refs["max"] = function(args, utils)
 
 	return true, lastBigger
 end
-refs["min"] = function(args, utils)
+runtime["min"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
@@ -1601,7 +1559,7 @@ refs["min"] = function(args, utils)
 
 	return true, lastSmaller
 end
-refs["neg"] = function(args, utils)
+runtime["neg"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
@@ -1611,7 +1569,7 @@ refs["neg"] = function(args, utils)
 
 	return true, -args[1]
 end
-refs["+"] = function(args, utils)
+runtime["+"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
     if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
@@ -1633,7 +1591,7 @@ refs["+"] = function(args, utils)
     return true, r
 end
 
-refs["-"] = function(args, utils)
+runtime["-"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
     if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
@@ -1655,7 +1613,7 @@ refs["-"] = function(args, utils)
     return true, r
 end
 
-refs["*"] = function(args, utils)
+runtime["*"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
     if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
@@ -1677,7 +1635,7 @@ refs["*"] = function(args, utils)
     return true, r
 end
 
-refs["^"] = function(args, utils)
+runtime["^"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
     if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
@@ -1695,7 +1653,7 @@ refs["^"] = function(args, utils)
     return true, result
 end
 
-refs["**"] = function(args, utils)
+runtime["**"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
     if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
@@ -1710,7 +1668,7 @@ refs["**"] = function(args, utils)
     return true, result
 end
 
-refs["***"] = function(args, utils)
+runtime["***"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
     if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
@@ -1725,7 +1683,7 @@ refs["***"] = function(args, utils)
     return true, result
 end
 
-refs["/"] = function(args, utils)
+runtime["/"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
     if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
@@ -1743,7 +1701,7 @@ refs["/"] = function(args, utils)
     return true, result
 end
 
-refs["%"] = function(args, utils)
+runtime["%"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
     if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
@@ -1761,18 +1719,18 @@ refs["%"] = function(args, utils)
     return true, result
 end
 
-refs["lorem"] = function(args, utils)
+runtime["lorem"] = function(args, utils)
     return true, "Lorem ipsum dolor sit, amet consectetur adipisicing elit. Laborum, quas! Illum blanditiis, sed, earum vitae in laboriosam sint neque vero quos animi sunt nesciunt repudiandae qui? Voluptate possimus natus optio."
 end
 
-refs["date"] = function(args, utils)
+runtime["date"] = function(args, utils)
     return true, string.split(os.date("%d/%m/%Y", os.time()), "/")
 end
 
-refs["time"] = function(args, utils)
+runtime["time"] = function(args, utils)
     return true, string.split(os.date("%H:%M:%S", os.time()), ":")
 end
-refs["random"] = function(args, utils)
+runtime["random"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 	if type(args[1]) ~= "number" then
@@ -1787,7 +1745,7 @@ refs["random"] = function(args, utils)
 	if not success then return {false, msg or "something unexpected happened during the random"} end
 	return true, result
 end
-refs["lerp"] = function(args, utils)
+runtime["lerp"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
     if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
@@ -1807,7 +1765,7 @@ refs["lerp"] = function(args, utils)
     if not ok then return {false, msg or "something unexpected happened during the lerp"} end
     return true, result
 end
-refs["floor"] = function(args, utils)
+runtime["floor"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
     if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
@@ -1822,7 +1780,7 @@ refs["floor"] = function(args, utils)
     return true, result
 end
 
-refs["abs"] = function(args, utils)
+runtime["abs"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 	if type(args[1]) ~= "number" then
@@ -1834,7 +1792,7 @@ refs["abs"] = function(args, utils)
 	if not success then return {false, msg or "something unexpected happened during the abs"} end
 	return true, result
 end
-refs["sin"] = function(args, utils)
+runtime["sin"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 	if type(args[1]) ~= "number" then
@@ -1846,7 +1804,7 @@ refs["sin"] = function(args, utils)
 	if not success then return {false, msg or "something unexpected happened during the sin"} end
 	return true, result
 end
-refs["cos"] = function(args, utils)
+runtime["cos"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 	if type(args[1]) ~= "number" then
@@ -1858,7 +1816,7 @@ refs["cos"] = function(args, utils)
 	if not success then return {false, msg or "something unexpected happened during the cos"} end
 	return true, result
 end
-refs["acos"] = function(args, utils)
+runtime["acos"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 	if type(args[1]) ~= "number" then
@@ -1870,7 +1828,7 @@ refs["acos"] = function(args, utils)
 	if not success then return {false, msg or "something unexpected happened during the acos"} end
 	return true, result
 end
-refs["asin"] = function(args, utils)
+runtime["asin"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 	if type(args[1]) ~= "number" then
@@ -1882,7 +1840,7 @@ refs["asin"] = function(args, utils)
 	if not success then return {false, msg or "something unexpected happened during the asin"} end
 	return true, result
 end
-refs["atan"] = function(args, utils)
+runtime["atan"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 	if type(args[1]) ~= "number" then
@@ -1894,7 +1852,7 @@ refs["atan"] = function(args, utils)
 	if not success then return {false, msg or "something unexpected happened during the atan"} end
 	return true, result
 end
-refs["atan2"] = function(args, utils)
+runtime["atan2"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 	if type(args[1]) ~= "number" then
@@ -1910,7 +1868,7 @@ refs["atan2"] = function(args, utils)
 	return true, result
 end
 
-refs["ceil"] = function(args, utils)
+runtime["ceil"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 	if type(args[1]) ~= "number" then
@@ -1922,7 +1880,7 @@ refs["ceil"] = function(args, utils)
 	if not success then return {false, msg or "something unexpected happened during the ceil"} end
 	return true, result
 end
-refs["log10"] = function(args, utils)
+runtime["log10"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 	if type(args[1]) ~= "number" then
@@ -1934,7 +1892,7 @@ refs["log10"] = function(args, utils)
 	if not success then return {false, msg or "something unexpected happened during the log10"} end
 	return true, result
 end
-refs["randomseed"] = function(args, utils)
+runtime["randomseed"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 	if type(args[1]) ~= "number" then
@@ -1946,7 +1904,7 @@ refs["randomseed"] = function(args, utils)
 	if not success then return {false, msg or "something unexpected happened during the randomseed"} end
 	return true, result
 end
-refs["deg"] = function(args, utils)
+runtime["deg"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 	if type(args[1]) ~= "number" then
@@ -1958,7 +1916,7 @@ refs["deg"] = function(args, utils)
 	if not success then return {false, msg or "something unexpected happened during the deg"} end
 	return true, result
 end
-refs["sqrt"] = function(args, utils)
+runtime["sqrt"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 	if type(args[1]) ~= "number" then
@@ -1970,7 +1928,7 @@ refs["sqrt"] = function(args, utils)
 	if not success then return {false, msg or "something unexpected happened during the sqrt"} end
 	return true, result
 end
-refs["tan"] = function(args, utils)
+runtime["tan"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 	if type(args[1]) ~= "number" then
@@ -1982,7 +1940,7 @@ refs["tan"] = function(args, utils)
 	if not success then return {false, msg or "something unexpected happened during the tan"} end
 	return true, result
 end
-refs["rad"] = function(args, utils)
+runtime["rad"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 	if type(args[1]) ~= "number" then
@@ -1994,7 +1952,7 @@ refs["rad"] = function(args, utils)
 	if not success then return {false, msg or "something unexpected happened during the rad"} end
 	return true, result
 end
-refs["log"] = function(args, utils)
+runtime["log"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 	if type(args[1]) ~= "number" then
@@ -2009,7 +1967,7 @@ refs["log"] = function(args, utils)
 	if not success then return {false, msg or "something unexpected happened during the log"} end
 	return true, result
 end
-refs["noise"] = function(args, utils)
+runtime["noise"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 	if type(args[1]) ~= "number" then
@@ -2027,7 +1985,7 @@ refs["noise"] = function(args, utils)
 	if not success then return {false, msg or "something unexpected happened during the noise"} end
 	return true, result
 end
-refs["sign"] = function(args, utils)
+runtime["sign"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 	if type(args[1]) ~= "number" then
@@ -2042,7 +2000,7 @@ refs["sign"] = function(args, utils)
 		return true, -1
 	end
 end
-refs["inv"] = function(args, utils)
+runtime["inv"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 	local numbers = {}
@@ -2057,10 +2015,10 @@ refs["inv"] = function(args, utils)
 
 	return true, numbers
 end
-refs["e"] = function(args, utils)
+runtime["e"] = function(args, utils)
 	return true, 2.71828
 end
-refs["json-encode"] = function(args, utils)
+runtime["json-encode"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
@@ -2070,7 +2028,7 @@ refs["json-encode"] = function(args, utils)
 	if not success then return false, msg or "encode error." end
 	return true, result
 end
-refs["json-decode"] = function(args, utils)
+runtime["json-decode"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 	
@@ -2080,7 +2038,7 @@ refs["json-decode"] = function(args, utils)
 	if not success then return false, msg or "decode error." end
 	return true, result
 end
-refs["http-get"] = function(args, utils)
+runtime["http-get"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
 
     -- Verificação dos parâmetros
@@ -2088,18 +2046,18 @@ refs["http-get"] = function(args, utils)
         return false, args[2]
     end
     if type(args[1]) ~= "string" then
-        return false, "[http-post] [url] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+        return false, "[http-get] [url] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
     end
     if args[2] and type(args[3]) ~= "table" then
-        return false, "[http-post] [headers] expected a table but received [3]: '" .. _local.typeof(args[3]) .. "'"
+        return false, "[http-get] [headers] expected a table but received [3]: '" .. _local.typeof(args[3]) .. "'"
     end
     if string.sub(args[1], 1, 7) ~= "http://" and string.sub(args[1], 1, 8) ~= "https://" then
-        return false, "[http-post] expected a valid URL, expected http:// or https://, received [1]: '" .. args[1] .. "'"
+        return false, "[http-get] expected a valid URL, expected http:// or https://, received [1]: '" .. args[1] .. "'"
     end
 
     -- Criar um log único para a resposta
-    local logID = tostring(#fs.list(temporary.paths.http))
-    local file = temporary.paths.http .. "/" .. logID
+    local logID = tostring(#fs.list(script_dir .. "/" .. temporary.paths.http))
+    local file = script_dir .. "/" .. temporary.paths.http .. "/" .. logID
 
     -- Monta os cabeçalhos (headers)
     local header_cmd = ""
@@ -2141,7 +2099,7 @@ refs["http-get"] = function(args, utils)
 
     return true, {status_code, response_body}
 end
-refs["http-post"] = function(args, utils)
+runtime["http-post"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
 
     -- Verificação dos parâmetros
@@ -2159,8 +2117,8 @@ refs["http-post"] = function(args, utils)
     end
 
     -- Criar um log único para a resposta
-    local logID = tostring(#fs.list(temporary.paths.http))
-    local file = temporary.paths.http .. "/" .. logID
+    local logID = tostring(#fs.list(script_dir .. "/" .. temporary.paths.http))
+    local file = script_dir .. "/" .. temporary.paths.http .. "/" .. logID
 
     -- Monta os cabeçalhos (headers)
     local header_cmd = ""
@@ -2222,7 +2180,7 @@ end
 
 
 -- (print (http-post "http://a" (object test [1,2,3,4]) (object test abc)))
-refs["object"] = function(args, utils)
+runtime["object"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
@@ -2246,11 +2204,11 @@ refs["object"] = function(args, utils)
 
 	return true, result
 end
-refs["version"] = function(args, utils)
-    local language = require("language")
-    return true, language.version
+runtime["version"] = function(args, utils)
+    local metadata = require("metadata")
+    return true, metadata.version
 end
-refs["odd?"] = function(args, utils)
+runtime["odd?"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
@@ -2260,7 +2218,7 @@ refs["odd?"] = function(args, utils)
 
 	return true, args[1] % 2 == 0
 end
-refs["even?"] = function(args, utils)
+runtime["even?"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
@@ -2270,31 +2228,31 @@ refs["even?"] = function(args, utils)
 
 	return true, args[1] % 2 ~= 0
 end
-refs["bool?"] = function(args, utils)
+runtime["bool?"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
 	return true, type(args[1]) == "boolean"
 end
-refs["num?"] = function(args, utils)
+runtime["num?"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
 	return true, type(args[1]) == "number"
 end
-refs["str?"] = function(args, utils)
+runtime["str?"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
 	return true, type(args[1]) == "string"
 end
-refs["list?"] = function(args, utils)
+runtime["list?"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
 	return true, type(args[1]) == "table"
 end
-refs["filter"] = function(args, utils)
+runtime["filter"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
@@ -2313,7 +2271,7 @@ refs["filter"] = function(args, utils)
 			if type(v) == "table" then
 				v = _local.tableToString(v)
 			end
-			local returns = require("src.index"):run("(" .. args[2] .. " " .. v .. ")", nil, true)
+			local returns = require("src.core"):run("(" .. args[2] .. " " .. v .. ")", nil, true)
 
 			if returns[1] == false then
 				return false, "[filter] [2] function: "  .. (returns[2] or "")
@@ -2337,4 +2295,4 @@ refs["filter"] = function(args, utils)
 	return true, togo
 end
 
-return refs
+return runtime

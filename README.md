@@ -119,5 +119,6 @@ Don't be upset if something happen to you.
 
 ## Comming
 
+- HTTP-SERVER
 - More in depth documentation about
 - Expecting more linux compability as executable. (I am not a linux user, sorry)

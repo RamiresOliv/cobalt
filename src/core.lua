@@ -1,35 +1,63 @@
 local json = require("modules.dkjson")
-local arguments = require("src.arguments")
+local arguments = require("src.args")
 local utils = require("src.utils")
-local types = require("src.types")
-local refs = require("src.references")
-local terminal = require("src.terminal")
+local api = require("src.api")
+local runtime = require("src.runtime")
+local cli = require("src.cli")
 local fs = require("src.filesystem")
 
+ShouldClearTempsAfterDone = true;
+
 local me = {}
+
+local script_dir_raw = debug.getinfo(1, "S").source:sub(2):match("(.+)[/\\]")
+local script_dir = ""
+if script_dir_raw ~= ".\\src" then script_dir = script_dir_raw .. "\\..\\" end
+
 local temporary = {
   paths = {
-    http = "temporary/http",
-    functions = "temporary/functions",
-    values = "temporary/values"
+    http = "./temp/client",
+    functions = "./temp/funcs",
+    variables = "./temp/vars"
   }
 }
+
+temporary.check = function()
+  if not fs.check(script_dir .. "/temp") then
+    fs.mkdir(script_dir .. "/" .. "temp")
+    fs.mkdir(script_dir .. "/" .. "temp/funcs")
+    fs.mkdir(script_dir .. "/" .. "temp/client")
+    fs.mkdir(script_dir .. "/" .. "temp/vars")
+  end
+  if not fs.check(script_dir .. "/temp/funcs") then
+    fs.mkdir(script_dir .. "/" .. "temp/funcs")
+  end
+  if not fs.check(script_dir .. "/temp/client") then
+    fs.mkdir(script_dir .. "/" .. "temp/client")
+  end
+  if not fs.check(script_dir .. "/temp/vars") then
+    fs.mkdir(script_dir .. "/" .. "temp/vars")
+  end
+end
+temporary.check()
+
 temporary.clear = function()
-  for _, file in ipairs(fs.list(temporary.paths.http)) do
-    os.remove(temporary.paths.http .. "/" .. file)
+  temporary.check()
+  for _, file in ipairs(fs.list(script_dir .. "/" .. temporary.paths.http)) do
+    fs.remove(script_dir .. "/" .. temporary.paths.http .. "/" .. file)
   end
-  for _, file in ipairs(fs.list(temporary.paths.functions)) do
-    os.remove(temporary.paths.functions .. "/" .. file)
+  for _, file in ipairs(fs.list(script_dir .. "/" .. temporary.paths.functions)) do
+    fs.remove(script_dir .. "/" .. temporary.paths.functions .. "/" .. file)
   end
-  for _, file in ipairs(fs.list(temporary.paths.values)) do
-    os.remove(temporary.paths.values .. "/" .. file)
+  for _, file in ipairs(fs.list(script_dir .. "/" .. temporary.paths.variables)) do
+    fs.remove(script_dir .. "/" .. temporary.paths.variables .. "/" .. file)
   end
 end
 
 function testConvert(v)
   v = tostring(v)
-  for _, file in ipairs(fs.list(temporary.paths.values)) do
-    local filePath = temporary.paths.values .. "/" .. file
+  for _, file in ipairs(fs.list(script_dir .. temporary.paths.variables)) do
+    local filePath = script_dir .. temporary.paths.variables .. "/" .. file
     local togoV = fs.read(filePath)
 
     if togoV == "true" then
@@ -131,12 +159,17 @@ end
 
 -- eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
 function me:init(code, rawArgs, mustReturn)
+  temporary.check()
   temporary.clear()
-  return me:run(code, rawArgs, mustReturn)
+  local run = me:run(code, rawArgs, mustReturn)
+  if ShouldClearTempsAfterDone then temporary.clear() end
+  return run;
 end
 
 -- help me
 function me:run(code, rawArgs, mr)
+  temporary.check()
+
   local proccess = 0
   if mr == nil then mr = false end
   if not code then return {false, "empty request."} end
@@ -152,10 +185,10 @@ function me:run(code, rawArgs, mr)
 
       if not base_funcName then return {false, 'incomplete statement.'} end
 
-      local scriptFuncPath = fs.check(temporary.paths.functions, base_funcName .. ".json")
-      local functionData = types.mapping[base_funcName]
+      local scriptFuncExists = fs.check(script_dir .. temporary.paths.functions .. "/" .. base_funcName .. ".json")
+      local functionData = api.mapping[base_funcName]
 
-      if not scriptFuncPath and not functionData then
+      if not scriptFuncExists and not functionData then
         return {false, "unknown syntax/function: '" .. (base_funcName or "nil") .. "'"}
       end
 
@@ -186,11 +219,11 @@ function me:run(code, rawArgs, mr)
               table.insert(functionName, word)
             end
             functionName = functionName[1]
-            local typesOfFunc = types.mapping[functionName]
-            if not typesOfFunc then return "function" end
+            local apiOfFunc = api.mapping[functionName]
+            if not apiOfFunc then return "function" end
 
             local returnsList = {}
-            for s in typesOfFunc.returns:gmatch("([^/]+)") do
+            for s in apiOfFunc.returns:gmatch("([^/]+)") do
               table.insert(returnsList, s)
             end
             for _, v in ipairs(returnsList) do
@@ -220,7 +253,7 @@ function me:run(code, rawArgs, mr)
         end
 
         for i_args, v_args in ipairs(base_args) do
-          local funcType = types.mapping[base_funcName]
+          local funcType = api.mapping[base_funcName]
           local argExpects = funcType.params[i_args]
 
           if funcType.openEntries == true and i_args > #funcType.params then
@@ -250,7 +283,7 @@ function me:run(code, rawArgs, mr)
           ::continue::
         end
 
-        local funcRefFunc = refs[base_funcName]
+        local funcRefFunc = runtime[base_funcName]
         if not funcRefFunc then return {false, "Function reference doesn't exist. (prob of a huge bug)"} end
 
         local state, data, refuseStop = funcRefFunc(base_args)
@@ -259,17 +292,17 @@ function me:run(code, rawArgs, mr)
         if data ~= nil and type(data) == "table" and (data[1] == "_-!@!_-!-continue-skip-this-thing-rn!" or data[1] == "_-!@!_-!-break-and-stop-rn!") then return {true, nil, nil, true} end
         if state == false then return {false, data} end
         if mr == true then return {true, data, refuseStop} end
-      elseif scriptFuncPath then
-        local content = fs.read(scriptFuncPath)
+      elseif scriptFuncExists then
+        local content = fs.read(script_dir .. temporary.paths.functions .. "/" .. base_funcName .. ".json")
         local s, decode = pcall(function()
           return json.decode(content)
         end)
         if not s then
-          print(terminal.colorize("[scriptFunction:invalid_JSON]: JSONDecode failed.", "red"))
+          print(cli.colorize("[scriptFunction:invalid_JSON]: JSONDecode failed.", "red"))
           return {false, "Unable to run function, JSONDecode was unable to work with it."}
         end
         if type(decode) ~= "table" or not decode.arguments or not decode.commands then
-          print(terminal.colorize("[scriptFunction:invalid_format]: Invalid function data format; JSON was successful, but the data wasn't expected.", "red"))
+          print(cli.colorize("[scriptFunction:invalid_format]: Invalid function data format; JSON was successful, but the data wasn't expected.", "red"))
           return {false, "Invalid function data format to run."}
         end
 
@@ -280,7 +313,7 @@ function me:run(code, rawArgs, mr)
 
           local r, returns = me:run(c, nil, true)
           if r[1] == false then
-            print(terminal.colorize("[" .. base_funcName .. "] Error origin in function '" .. base_funcName .. "': " .. tostring(r[2] or "unknown"), "red"))
+            print(cli.colorize("[" .. base_funcName .. "] Error origin in function '" .. base_funcName .. "': " .. tostring(r[2] or "unknown"), "red"))
             return {false, r[2]}
           end
 
@@ -312,7 +345,7 @@ function me:run(code, rawArgs, mr)
   end)
 
   if not success then
-    print(terminal.colorize(terminal.colorize("[Error]: High level error:", "magenta"), "bold"))
+    print(cli.colorize(cli.colorize("[Error]: High level error:", "magenta"), "bold"))
     print(returns)
     temporary.clear()
     return {false, returns, true}

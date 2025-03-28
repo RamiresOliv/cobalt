@@ -1,7 +1,7 @@
 local args_handler = {}
 
-local utils = require("src.utils")         -- Ajuste o caminho conforme necessário
-local constants = require("src.constants")() -- Presume que o módulo retorna uma função que precisa ser chamada
+local utils = require("src.utils")
+local metadata = require("src.metadata")
 
 function args_handler.indexArgHandler(self, v, args)
   v = tostring(v)
@@ -27,7 +27,7 @@ function args_handler.indexArgHandler(self, v, args)
     v = nil
   else
     if type(v) == "string" then
-      for key, value in pairs(constants) do
+      for key, value in pairs(metadata:constants()) do
         v = v:gsub("{" .. tostring(key) .. "}", tostring(value))
       end
     end

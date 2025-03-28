@@ -1,9 +1,11 @@
-local script_dir = debug.getinfo(1, "S").source:sub(2):match("(.+)[/\\]")
-package.path = package.path .. ";" .. script_dir .. "/?.lua"
+pcall(function()
+    local script_dir = debug.getinfo(1, "S").source:sub(2):match("(.+)[/\\]")
+    package.path = package.path .. ";" .. script_dir .. "/?.lua"
+end)
 
 local cobalt = require("call")
-local language = require("src.language")
-local types = require("src.types")
+local metadata = require("src.metadata")
+local api = require("src.api")
 
 function tableToString(list)
     if type(list) ~= "table" then return nil end
@@ -34,7 +36,7 @@ if filepath then
 end
 
 function header()
-    print("Cobalt " .. tostring(language.version) .. " (" .. _VERSION .. ") https://github.com/RamiresOliv/cobalt")
+    print("Cobalt " .. tostring(metadata.version) .. " (" .. _VERSION .. ") https://github.com/RamiresOliv/cobalt")
     print("use 'help' for functions list and syntax assist.")
     print("you can exit using 'exit' or CTRL+C")
 end
@@ -69,13 +71,13 @@ while true do
         local founds = input:split(" ")
 
         if #founds > 1 then
-            local v = types.mapping[founds[2]]
+            local v = api.mapping[founds[2]]
             if not v then
                 print("\27[33mfunction named '" .. founds[2] .. "' has not been found.\27[0m")
                 
                 local allIndexes = {}
                 local rs = {}
-                for i in pairs(types.mapping) do
+                for i in pairs(api.mapping) do
                     table.insert(allIndexes, i)
                 end
                 for _, v in pairs(allIndexes) do
@@ -121,17 +123,17 @@ while true do
     (print (json-decode (listget (http-get http://api.open-notify.org/iss-now.json) 2)))
     (clear) (var phrase "Hello big world!") (for (len {phrase}) i (print (first {phrase} {i})))
         ]])
-        print("\27[1mcobalt commands:\27[0m")
+        print("\27[1mcobalt commands: (from api.lua)\27[0m")
         
         local keys = {}
-        for k in pairs(types.mapping) do
+        for k in pairs(api.mapping) do
             table.insert(keys, k)
         end
         table.sort(keys, function(a, b)
             return a < b
         end)
         for _, k in ipairs(keys) do
-            local v = types.mapping[k]
+            local v = api.mapping[k]
             local r = ""
             for param_n, param in ipairs(v.params) do
                 if param_n <= v.requiredEntries then

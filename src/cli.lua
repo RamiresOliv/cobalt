@@ -1,7 +1,7 @@
 -- bruh
 local self = {}
 
--- really not a copy of references.color
+-- really not a copy of runtime.color
 self.colorize = function (text, color)
 	local colors = {
 		red     = "\27[31m",
