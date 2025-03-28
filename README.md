@@ -1,20 +1,20 @@
 # 🔵 Cobalt
 
-_"That one programming language"_
-Being open source, make easy to set up your own commands and edit them.
-And planned to be an easy way to control values or just to be simple to get user logical input and receive it's inputs.
-This language has started in [Roblox](https://www.roblox.com/games/97398140739060/). Now it's here!
+_"That one programming language"_<br>
+Being open source, make easy to set up your own commands and edit them.<br>
+And planned to be an easy way to control values or just to be simple to get user logical input and receive it's inputs.<br>
+This language has started in [Roblox](https://www.roblox.com/games/97398140739060/). Now it's here!<br>
 Able to, manage http requests, JSON, variables, file system, math and more.
 
 ## 🌙 Lua
 
-You should have lua installed. If not, we have lua 5.4 for you! Located at `bin`
-But remember to install it and add it at `PATH` env.
+You should have lua installed. If not, we have lua 5.4 for you! Located at `bin`<br>
+But remember to install it and add it at `PATH` env.<br>
 Install from [here](https://www.lua.org/download.html)
 
 ## 💻 Usage
 
-first of all, you just need to run the cobalt.exe to execute any `.ct` file.
+first of all, you just need to run the cobalt.exe to execute any `.ct` file.<br>
 depending on the situation, you may use `cobalt.lua` directly, it will push all the sequence at `src`
 
 #### - Terminal examples:
@@ -109,13 +109,13 @@ print(returns[2]) -- should be "Here is this important string!"
 
 ## 🐛 Found bugs?
 
-Report them!
+Report them!<br>
 Open an [Issue - bug](https://github.com/RamiresOliv/cobalt/issues/new) let me know!
 
-And please note that, this is a project in development.
+And please note that, this is a project in development.<br>
 Don't be upset if something happen to you.
 
 ## Comming
 
-More in depth documentation about
-Expecting more linux compability as executable. (I am not a linux user, sorry)
+- More in depth documentation about
+- Expecting more linux compability as executable. (I am not a linux user, sorry)
