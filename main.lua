@@ -1,3 +1,6 @@
+local script_dir = debug.getinfo(1, "S").source:sub(2):match("(.+)[/\\]")
+package.path = package.path .. ";" .. script_dir .. "/?.lua"
+
 local cobalt = require("call")
 local language = require("src.language")
 local types = require("src.types")
@@ -32,7 +35,7 @@ end
 
 function header()
     print("Cobalt " .. tostring(language.version) .. " (" .. _VERSION .. ") https://github.com/RamiresOliv/cobalt")
-    print("declare 'help' for functions list and syntax assist.")
+    print("use 'help' for functions list and syntax assist.")
     print("you can exit using 'exit' or CTRL+C")
 end
 
@@ -48,7 +51,7 @@ function string:split(delimiter)
     end
     table.insert( result, string.sub( self, from  ) )
     return result
-  end
+end
 
 while true do
     ::continue::
@@ -62,19 +65,17 @@ while true do
         os.execute("cls")
         goto continue
     elseif input == "help" or input:split(" ")[1] == "help" then
-        header()
 
         local founds = input:split(" ")
 
         if #founds > 1 then
             local v = types.mapping[founds[2]]
-
             if not v then
-                print("function named '" .. founds[2] .. "' has not been found.")
+                print("\27[33mfunction named '" .. founds[2] .. "' has not been found.\27[0m")
                 
                 local allIndexes = {}
                 local rs = {}
-                for i, _ in pairs(types.mapping) do
+                for i in pairs(types.mapping) do
                     table.insert(allIndexes, i)
                 end
                 for _, v in pairs(allIndexes) do
@@ -82,7 +83,6 @@ while true do
                         table.insert(rs, v)
                     end
                 end
-
                 if #rs > 0 then
                     print("maybe you mean by " .. table.concat(rs, ", ") .. "?")
                 end
@@ -90,46 +90,54 @@ while true do
                 goto continue
             end
 
-            r = ""
-            for param_n, param in pairs(v.params) do
+            local r = ""
+            for param_n, param in ipairs(v.params) do
                 if param_n <= v.requiredEntries then
-                    r = r .. " " .. "{" .. param .. "}"
+                    r = r .. " {" .. param .. "}"
                 else
-                    r = r .. " " .. "[" .. param .. "]"
+                    r = r .. " [" .. param .. "]"
                 end
             end
             if v.openEntries then
                 r = r .. " ..."
             end
-            if #r > 0 then
-                r = " " .. r
-            end
-            print("(" .. founds[2] .. r .. ")" .. ": " .. v.returns)
-            print("- " .. v.description)
-            print(string.rep("-", #v.description + 3))
-            
+            print("(\27[36m" .. founds[2] .. "\27[33m" .. r .. "\27[0m)" ..
+                  "\27[0m\27[90m: " .. v.returns .. "\27[0m")
+            print("\27[1m" .. v.description .. "\27[0m")
+            print(string.rep("\27[90m-\27[0m", #v.description))
             goto continue
         end
 
+        header()
+        print("")
         print("\27[1mcobalt usage:\27[0m")
         print([[
     (print "Hello World!"): "Hello World"
     (print (+ 10 10)): 20
-    (print (format "Hello {1}!" (prompt "What is your name?"))): "Hello *input*!"
-    (var input (prompt "let me guess the type!")) (print (format "it is: {1}" (type {input}))): "it is: *input read convertion*"
-    (function mySum v1 v2 (return (+ {v1} {v2}))) (print (mySum 15 10)): 25
+    (print (format "Hello {1}!" (prompt "What is your name?")))
+    (var input (prompt "let me guess the type!")) (print (format "it is: {1}" (type {input})))
+    (function mySum v1 v2 (return (+ {v1} {v2}))) (print (mySum 15 10))
     (function checkThat v1 (return-if (== {v1} "no") (print (color "user said no!" "orange"))) (print "yes! {v1}")) (checkThat yes)
     (print (json-decode (listget (http-get http://api.open-notify.org/iss-now.json) 2)))
     (clear) (var phrase "Hello big world!") (for (len {phrase}) i (print (first {phrase} {i})))
         ]])
         print("\27[1mcobalt commands:\27[0m")
-        for i, v in pairs(types.mapping) do
-            r = ""
-            for param_n, param in pairs(v.params) do
+        
+        local keys = {}
+        for k in pairs(types.mapping) do
+            table.insert(keys, k)
+        end
+        table.sort(keys, function(a, b)
+            return a < b
+        end)
+        for _, k in ipairs(keys) do
+            local v = types.mapping[k]
+            local r = ""
+            for param_n, param in ipairs(v.params) do
                 if param_n <= v.requiredEntries then
-                    r = r .. " " .. "{" .. param .. "}"
+                    r = r .. " {" .. param .. "}"
                 else
-                    r = r .. " " .. "[" .. param .. "]"
+                    r = r .. " [" .. param .. "]"
                 end
             end
             if v.openEntries then
@@ -138,14 +146,15 @@ while true do
             if #r > 0 then
                 r = " " .. r
             end
-            print("    (" .. i .. r .. ")" .. ": " .. v.returns)
+            print("    (\27[36m" .. k .. "\27[31m" .. r .. "\27[0m)" .. "\27[0m\27[90m: " .. v.returns .. "\27[0m")
         end
-
+        
         print("")
         print("{...} = required")
         print("[...] = optional")
+        print("'...' = multiple arguments (MUST be the same type as the last value)")
         print("")
-        print("looking for more info about an specific function? Use help <funcName>")
+        print("\27[90mlooking for more info about an specific function? Use help <funcName>\27[0m")
         goto continue
     end
 

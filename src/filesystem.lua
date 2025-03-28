@@ -1,14 +1,15 @@
 local fs = {}
 
-local path = debug.getinfo(1, "S").source:sub(2):gsub("\\", "/")
-local folder = path:match("(.*/)") or "./"
+local path = debug.getinfo(1, "S").source:sub(2)--:gsub("\\", "/")
+local folder = path:match("(.*\\)") or ".\\"
 
-package.cpath = package.cpath .. ";" .. folder .. "../modules/?.dll;"
+package.cpath = package.cpath .. ";" .. folder .. "..\\modules\\?.dll;"
+
 local lfs = require("luafs")
 
 function fs.list(dir)
     local children = {}
-    for file in lfs.dir(dir) do
+    for file in lfs.dir(folder .. "../" .. dir) do
       if file ~= "." and file ~= ".." then
         table.insert(children, file)
       end

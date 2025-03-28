@@ -15,7 +15,9 @@ Install from [here](https://www.lua.org/download.html)
 ## 💻 Usage
 
 first of all, you just need to run the cobalt.exe to execute any `.ct` file.<br>
-depending on the situation, you may use `cobalt.lua` directly, it will push all the sequence at `src`
+depending on the situation, you may use `cobalt.lua` directly, it will push all the sequence at `src`<br>
+
+if you want to call cobalt, always use the `call.lua` file, and never `main.lua`. Because `main` is there for the executables. And `call` is directly to `src/index.lua`.
 
 #### - Terminal examples:
 
