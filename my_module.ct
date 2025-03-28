@@ -1,5 +1,5 @@
 ; my_module.ct
-; You can use {%1}, {%2}, {%3} ... for call arguments for the module when called.
+; You can use {%1}, {%2}, {%3} ... to call module arguments.
 
 (print "Hello {%1} and World from my_module!")
 (return "Here is this important string!") ; to return the cool string

@@ -3,10 +3,10 @@ local args_handler = {}
 local utils = require("src.utils")         -- Ajuste o caminho conforme necessário
 local constants = require("src.constants")() -- Presume que o módulo retorna uma função que precisa ser chamada
 
-function args_handler.indexArgHandler(self, v, args, isModule)
+function args_handler.indexArgHandler(self, v, args)
   v = tostring(v)
 
-  if isModule and type(args) == "table" then
+  if type(args) == "table" then
     for key, value in pairs(args) do
       v = v:gsub("{%%" .. tostring(key) .. "}", tostring(value))
     end

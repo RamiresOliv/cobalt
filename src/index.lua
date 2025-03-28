@@ -136,7 +136,7 @@ function me:init(code, rawArgs, mustReturn)
 end
 
 -- help me
-function me:run(code, rawArgs, mr, isModule)
+function me:run(code, rawArgs, mr)
   local proccess = 0
   if mr == nil then mr = false end
   if not code then return {false, "empty request."} end
@@ -160,7 +160,7 @@ function me:run(code, rawArgs, mr, isModule)
       end
 
       for i, v in ipairs(base_args) do
-        base_args[i] = arguments:indexArgHandler(v, rawArgs, isModule)
+        base_args[i] = arguments:indexArgHandler(v, rawArgs)
       end
 
       local function describe(value, expected)
@@ -278,7 +278,7 @@ function me:run(code, rawArgs, mr, isModule)
             c = c:gsub("{" .. name .. "}", tostring(base_args[i]))
           end
 
-          local r, returns = me:run(c, nil, true, isModule)
+          local r, returns = me:run(c, nil, true)
           if r[1] == false then
             print(terminal.colorize("[" .. base_funcName .. "] Error origin in function '" .. base_funcName .. "': " .. tostring(r[2] or "unknown"), "red"))
             return {false, r[2]}
