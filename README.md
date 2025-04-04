@@ -66,7 +66,7 @@ Here is this important string!
 ```lua
 local cobalt = require("cobalt.call") -- path.to.call (call.lua)
 
-local returns = cobalt("(+ 1 1)") -- code as string, epected returns as boolean.
+local returns = cobalt("(+ 1 1)") -- code as string, expected returns as boolean.
 -- returns a table
 -- [1]: success boolean
 -- [2]: the value to be returned (if theres any) or the error reason.
@@ -79,7 +79,7 @@ print(returns[2]) -- should be nil (because wasn't expected returns)
 ```lua
 local cobalt = require("cobalt") -- path.to.call (call.lua)
 
-local returns = cobalt("(+ 1 1)", true) -- code as string, epected returns as boolean.
+local returns = cobalt("(+ 1 1)", true) -- code as string, expected returns as boolean.
 -- returns a table
 -- [1]: success boolean
 -- [2]: the value to be returned (if theres any) or the error reason.
