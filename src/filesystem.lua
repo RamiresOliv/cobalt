@@ -36,7 +36,7 @@ function fs.attributes(path, attr)
   return attributes
 end
 
-function fs.chdir(path)
+function fs.chdir(path) -- dunno
   local ok, err = lfs.chdir(path)
   if not ok then
     return nil, "cannot change directory to " .. path
@@ -44,7 +44,7 @@ function fs.chdir(path)
   return true
 end
 
-function fs.currentdir()
+function fs.currentdir() -- maybe
   local dir, err = lfs.currentdir()
   if not dir then
     return false, "cannot get current directory"
@@ -70,11 +70,12 @@ function fs.dir(path)
   end
 end
 
-function fs.touch(path)
-  local file, err = io.open(path, "ab")
+function fs.touch(path, content)
+  local file, err = io.open(path, "a")
   if not file then
     return false, "cannot update/create " .. path
   end
+  file:write(content or "")
   file:close()
   return true
 end

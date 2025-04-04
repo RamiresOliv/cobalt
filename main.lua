@@ -84,11 +84,11 @@ while true do
                 end
                 for _, v in pairs(allIndexes) do
                     if string.find(v, founds[2]) then
-                        table.insert(rs, v)
+                        table.insert(rs, '"' .. v .. '"')
                     end
                 end
                 if #rs > 0 then
-                    print("maybe you mean by " .. table.concat(rs, ", ") .. "?")
+                    print("maybe you mean by " .. table.concat(rs, ", ") .. " ?")
                 end
                 
                 goto continue

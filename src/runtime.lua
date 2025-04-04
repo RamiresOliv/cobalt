@@ -1622,6 +1622,140 @@ runtime["listclr"] = function(args, utils)
 end
 
 -- here to do the FS"
+runtime["fdexists?"] = function(args, utils)
+	args = _local.resolveArgs(args, utils)
+	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
+
+	if type(args[1]) ~= "string" then
+		return false, "[fdexists?] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+	end
+
+	return true, fs.isfile(args[1]) or fs.isdir(args[1])
+end
+runtime["file?"] = function(args, utils)
+	args = _local.resolveArgs(args, utils)
+	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
+
+	if type(args[1]) ~= "string" then
+		return false, "[file?] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+	end
+
+	return true, fs.isfile(args[1])
+end
+runtime["dir?"] = function(args, utils)
+	args = _local.resolveArgs(args, utils)
+	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
+
+	if type(args[1]) ~= "string" then
+		return false, "[dir?] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+	end
+
+	return true, fs.isdir(args[1])
+end
+runtime["attr"] = function(args, utils)
+	args = _local.resolveArgs(args, utils)
+	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
+
+	if type(args[1]) ~= "string" then
+		return false, "[attr] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+	end
+
+    local found = fs.check(args[1])
+	if not found then
+		return false, "[attr] file path doesn't exists: '" .. tostring(args[1]) .. "'"
+	end
+
+    local data = fs.attributes(args[1])
+    if data == nil then return false, "[attr] failed to read attributes from file/dir, unknown reason." end
+
+    local togo = {}
+    for i, v in pairs(data) do
+        table.insert(togo, {i, v})
+    end
+
+	return true, togo
+end
+runtime["rename"] = function(args, utils)
+	args = _local.resolveArgs(args, utils)
+	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
+
+	if type(args[1]) ~= "string" then
+		return false, "[rename] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+	end
+
+	if type(args[2]) ~= "string" then
+		return false, "[rename] expected a string but received [2]: '" .. _local.typeof(args[2]) .. "'"
+	end
+
+    local found = fs.check(args[1])
+	if not found then
+		return false, "[rename] copy path doesn't exists: [1]: '" .. tostring(args[1]) .. "'"
+	end
+
+    local found2 = fs.check(args[2])
+	if found2 then
+		return false, "[rename] paste path already exists [2]: '" .. tostring(args[2]) .. "'"
+	end
+
+    local scc = fs.rename(args[1], args[2])
+    if not scc then return false, "[rename] failed to rename file, unknown reason." end
+
+	return true
+end
+runtime["edit"] = function(args, utils)
+	args = _local.resolveArgs(args, utils)
+	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
+
+	if type(args[1]) ~= "string" then
+		return false, "[edit] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+	end
+
+    local found = fs.isfile(args[1])
+	if not found then
+		return false, "[edit] path is not a valid file: '" .. tostring(args[1]) .. "'"
+	end
+
+    local scc = fs.write(args[1], args[2] or "")
+    if not scc then return false, "[edit] failed to edit file, unknown reason." end
+
+	return true
+end
+runtime["mkfile"] = function(args, utils)
+	args = _local.resolveArgs(args, utils)
+	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
+
+	if type(args[1]) ~= "string" then
+		return false, "[mkfile] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+	end
+
+    local found = fs.check(args[1])
+	if found then
+		return false, "[mkfile] file path already exists: '" .. tostring(args[1]) .. "'"
+	end
+
+    local scc = fs.touch(args[1], args[2] or "")
+    if not scc then return false, "[mkfile] failed to make file, unknown reason." end
+
+	return true
+end
+runtime["mkdir"] = function(args, utils)
+	args = _local.resolveArgs(args, utils)
+	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
+
+	if type(args[1]) ~= "string" then
+		return false, "[mkdir] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+	end
+
+    local found = fs.check(args[1])
+	if found then
+		return false, "[mkdir] dir path already exists: '" .. tostring(args[1]) .. "'"
+	end
+
+    local scc = fs.mkdir(args[1])
+    if not scc then return false, "[mkdir] failed to make dir, unknown reason." end
+
+	return true
+end
 runtime["read"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
@@ -1636,6 +1770,7 @@ runtime["read"] = function(args, utils)
 	end
 
     local read = fs.read(args[1])
+    if read == nil then return false, "[read] failed to read file, unknown reason." end
 
 	return true, read
 end
@@ -1653,8 +1788,27 @@ runtime["dir"] = function(args, utils)
 	end
 
     local read = fs.list(args[1])
+    if read == nil then return false, "[dir] failed to read dir, unknown reason." end
 
 	return true, read
+end
+runtime["delete"] = function(args, utils)
+	args = _local.resolveArgs(args, utils)
+	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
+
+	if type(args[1]) ~= "string" then
+		return false, "[delete] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+	end
+
+    local found = fs.check(args[1])
+	if not found then
+		return false, "[delete] path is already doesn't exists: '" .. tostring(args[1]) .. "'"
+	end
+
+    local scc = fs.remove(args[1])
+    if scc == nil then return false, "[delete] failed to delete file/dir, unknown reason." end
+
+	return true
 end
 
 runtime["alphabet"] = function(args, utils)
@@ -2451,7 +2605,7 @@ runtime["object"] = function(args, utils)
 	return true, result
 end
 runtime["version"] = function(args, utils)
-    local metadata = require("metadata")
+    local metadata = require("src.metadata")
     return true, metadata.version
 end
 runtime["odd?"] = function(args, utils)

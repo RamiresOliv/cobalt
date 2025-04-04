@@ -545,17 +545,41 @@ exports.mapping = {
 	},
 
 	-- file system
-	["file?"] = {
-		description = "Checks if a file exists, returning a boolean.",
+	["fdexists?"] = {
+		description = "Checks if a FILE or DIR exists, returning a boolean.",
 		requiredEntries = 1,
 		params = {"string"},
 		returns = "boolean",
+	},
+	["dir?"] = {
+		description = "Checks if a DIR exists, returning a boolean.",
+		requiredEntries = 1,
+		params = {"string"},
+		returns = "boolean",
+	},
+	["file?"] = {
+		description = "Checks if a FILE exists, returning a boolean.",
+		requiredEntries = 1,
+		params = {"string"},
+		returns = "boolean",
+	},
+	["attr"] = {
+		description = "reads an file or dir attributes.",
+		requiredEntries = 1,
+		params = {"string"},
+		returns = "list",
+	},
+	["rename"] = {
+		description = "renames and changes the file directory depending on the second argument.",
+		requiredEntries = 2,
+		params = {"string", "string"},
+		returns = "nil",
 	},
 	["delete"] = {
 		description = "deletes a file or a directory.",
 		requiredEntries = 1,
 		params = {"string"},
-		returns = "string",
+		returns = "nil",
 	},
 	["read"] = {
 		description = "Reads a file.",
@@ -579,19 +603,19 @@ exports.mapping = {
 		description = "Edits a file.",
 		requiredEntries = 2,
 		params = {"string", "any"},
-		returns = "string",
+		returns = "nil",
 	},
 	["mkfile"] = {
 		description = "Creates a file.",
-		requiredEntries = 3,
-		params = {"string", "string", "any"},
-		returns = "string",
+		requiredEntries = 1,
+		params = {"string", "any"},
+		returns = "nil",
 	},
 	["mkdir"] = {
 		description = "Creates a dir.",
-		requiredEntries = 2,
-		params = {"string", "string"},
-		returns = "string",
+		requiredEntries = 1,
+		params = {"string"},
+		returns = "nil",
 	},
 
 	-- math, why not.
