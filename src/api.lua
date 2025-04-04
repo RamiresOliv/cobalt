@@ -186,11 +186,18 @@ exports.mapping = {
 		params = {"string"},
 		returns = "any",
 	},
-	["prompt"] = {
+	["input"] = {
 		description = "This functions open the input for the user write things in it.",
 		requiredEntries = 0,
 		params = {"string"},
 		returns = "string",
+	},
+	["stdout"] = {
+		description = "Like println or print, but prints everything in one line, doesnt matters if is called again.",
+		requiredEntries = 0,
+		openEntries = true,
+		params = {"any"},
+		returns = "nil",
 	},
 	["print"] = {
 		description = "The function print is useful for write something in the terminal, can be used to print results of mathematical operations or any other thing.",
@@ -210,6 +217,13 @@ exports.mapping = {
 		description = "Clear the terminal.",
 		requiredEntries = 0,
 		params = {},
+		returns = "nil",
+	},
+	["while"] = {
+		description = "Repeats the given functions until the choosen operator retuns false.",
+		requiredEntries = 1,
+		openEntries = true,
+		params = {"boolean", "function/string"},
 		returns = "nil",
 	},
 	["for"] = {
@@ -234,7 +248,7 @@ exports.mapping = {
 	},
 	["if"] = {
 		description = "Execute given functions when value is true or if is false executes the given functions defined after the 'else' value setted.",
-		requiredEntries = 2,
+		requiredEntries = 1,
 		openEntries = true,
 		params = {"boolean", "function/string"},
 		returns = "nil",
@@ -388,19 +402,50 @@ exports.mapping = {
 		params = {"string"},
 		returns = "boolean",
 	},
+	["ord"] = {
+		description = 'returns an ASCII code (number) of an string character.',
+		requiredEntries = 1,
+		params = {"string"},
+		returns = "number",
+	},
+	["chr"] = {
+		description = 'returns the character from an ASCII code (number)',
+		requiredEntries = 1,
+		params = {"number"},
+		returns = "string",
+	},
 
 	-- listssss
-	["listadd"] = {
-		description = "Adds a new value in the given list",
+	--[[["append"] = {
+		description = "Appends a new value in the given list",
 		requiredEntries = 2,
 		params = {"list", "any"},
 		returns = "list",
-	},
-	["listget"] = {
+	},]]
+	["at"] = {
 		description = "Gets a value in the given index",
 		requiredEntries = 2,
 		params = {"list", "number"},
 		returns = "any",
+	},
+	["pop"] = {
+		description = "Removes the last value in an list and returns it.",
+		requiredEntries = 1,
+		params = {"list"},
+		returns = "list",
+	},
+	["push"] = {
+		description = "Insert an value into an list.",
+		requiredEntries = 2,
+		openEntries = true,
+		params = {"list", "any"},
+		returns = "list",
+	},
+	["set"] = {
+		description = "Edits an value into an list.",
+		requiredEntries = 2,
+		params = {"list", "number", "any"},
+		returns = "list",
 	},
 	["listrem"] = {
 		description = "Removes a value in the given index, then returning the new list.",
@@ -500,7 +545,7 @@ exports.mapping = {
 	},
 
 	-- file system
-	["exists?"] = {
+	["file?"] = {
 		description = "Checks if a file exists, returning a boolean.",
 		requiredEntries = 1,
 		params = {"string"},
@@ -518,18 +563,18 @@ exports.mapping = {
 		params = {"string"},
 		returns = "string",
 	},
-	["readdir"] = {
+	["dir"] = {
 		description = "Reads a dir and returns a list.",
 		requiredEntries = 1,
 		params = {"string"},
 		returns = "list",
 	},
-	["getpath"] = {
+	--[[["getpath"] = {
 		description = "Returns a full file/folder path, returns: 'root/folders/path/to/file.txt'",
 		requiredEntries = 1,
 		params = {"string"},
 		returns = "string",
-	},
+	},]]
 	["edit"] = {
 		description = "Edits a file.",
 		requiredEntries = 2,

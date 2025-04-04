@@ -31,7 +31,9 @@ if filepath then
     end
 
     local returns = cobalt('(require "' .. tostring(filepath) .. '" ' .. args .. ')', true)
-    print(returns[2])
+    if returns[1] == false then
+        print("\27[31m" .. returns[2] .. "\27[0m")
+    end
     return;
 end
 
@@ -116,11 +118,11 @@ while true do
         print([[
     (print "Hello World!"): "Hello World"
     (print (+ 10 10)): 20
-    (print (format "Hello {1}!" (prompt "What is your name?")))
-    (var input (prompt "let me guess the type!")) (print (format "it is: {1}" (type {input})))
+    (print (format "Hello {1}!" (input "What is your name?")))
+    (var input (input "let me guess the type!")) (print (format "it is: {1}" (type {input})))
     (function mySum v1 v2 (return (+ {v1} {v2}))) (print (mySum 15 10))
     (function checkThat v1 (return-if (== {v1} "no") (print (color "user said no!" "orange"))) (print "yes! {v1}")) (checkThat yes)
-    (print (json-decode (listget (http-get http://api.open-notify.org/iss-now.json) 2)))
+    (print (json-decode (at (http-get http://api.open-notify.org/iss-now.json) 2)))
     (clear) (var phrase "Hello big world!") (for (len {phrase}) i (print (first {phrase} {i})))
         ]])
         print("\27[1mcobalt commands: (from api.lua)\27[0m")

@@ -1,0 +1,53 @@
+; this is an brain f****r interpreter. (loops inside of loops dosn't works... bruh)
+
+(function bf-interpreter memorySize code
+   (print (format "interpreting: '{1}' with {memorySize} cells." (replace {code} "\n" "")))
+   (var tape []) ; Memória de 16 células (pode aumentar)
+
+   (for {memorySize} (var tape (push {tape} 0)))
+
+   (var pointer 1)
+   (var ip 0)
+
+   (while (< {ip} (len (replace {code} "\n" "")))
+      (var ip (+ {ip} 1))
+      (var cmd (crop (replace {code} "\n" "") {ip}))
+      
+      (if (== "{cmd}" ">") (var pointer (+ {pointer} 1)))
+      (if (and (== "{cmd}" "<") (!= {pointer} 1)) (var pointer (- {pointer} 1)))
+      (if (== "{cmd}" "+") (var tape (set {tape} {pointer} (+ (at {tape} {pointer}) 1))))
+      (if (and (== "{cmd}" "-") (!= (at {tape} {pointer}) 0)) (var tape (set {tape} {pointer} (- (at {tape} {pointer}) 1))))
+      (if (== "{cmd}" ".") (stdout (chr (at {tape} {pointer}))))
+      (if (== "{cmd}" ",") (var tape (set {tape} {pointer} (ord (input "Input: ")))))
+
+      (if (== "{cmd}" "[")
+         (var selectedPointer (get pointer))
+         (var theip (get ip))
+
+         (if (!= (at (get tape) (get selectedPointer)) 0)
+            (while (!= (at (get tape) (get selectedPointer)) 0)
+               (var theip (+ (get theip) 1))
+               (var c (crop (replace {code} "\n" "") (get theip)))
+               
+               (if (== (get c) ">") (var pointer (+ (get pointer) 1)))
+               (if (and (== (get c) "<") (!= (get pointer) 1)) (var pointer (- (get pointer) 1)))
+               (if (== (get c) "+") (var tape (set (get tape) (get pointer) (+ (at (get tape) (get pointer)) 1))))
+               (if (and (== (get c) "-") (!= (at (get tape) (get pointer)) 0)) (var tape (set (get tape) (get pointer) (- (at (get tape) (get pointer)) 1))))
+               (if (== (get c) ".") (stdout (chr (at (get tape) (get pointer)))))
+               (if (== (get c) ",") (var tape (set (get tape) (get pointer) (ord (input "Input: ")))))
+
+               (if (== (get c) "]") (var theip (get ip)))
+            )
+
+         )
+         
+         (var ip {theip})
+      )
+
+   )
+
+   (print "") ; to break line
+   ; (print {tape})
+)
+
+(bf-interpreter 5 "++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>.")

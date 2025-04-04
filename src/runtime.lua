@@ -324,7 +324,7 @@ runtime["var"] = function(args, utils)
 		return false, "Unable to write variable-file: " .. filePath
 	end
 end
-runtime["prompt"] = function(args, utils)
+runtime["input"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
@@ -383,6 +383,7 @@ runtime["spawn"] = function(args, utils)
 	end)
     coroutine.resume(co)
 
+    print("done")
 	return true
 end
 runtime["get"] = function(args, utils)
@@ -393,14 +394,74 @@ runtime["get"] = function(args, utils)
     if not args[1] or _local.typeof(args[1]) ~= "string" then
         return false, "[get] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
     end
-    local ffc = fs.check(temporary.paths.variables .. "/" .. tostring(args[1]))
-    local val = nil
-    if ffc then
-        val = ffc.Value
+
+    local filePath = script_dir .. temporary.paths.variables .. "/" .. args[1]
+    local togoV = fs.read(filePath)
+
+    if not togoV then
+        return true, nil
     end
-    return true, val
+    return true, togoV
 end
 
+runtime["stdout"] = function(args, utils)
+    args = _local.resolveArgs(args, utils)
+    if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
+        return false, args[2] 
+    end
+    for i, v in ipairs(args) do
+        local go = "undefined"
+        local t = _local.typeof(v)
+        if t == "string" then
+            if v == "_-!@!_-!-continue-skip-this-thing-rn!" or v == "_-!@!_-!-break-and-stop-rn!" then
+                go = ""
+            else
+                if string.sub(v, 1, 1) == '"' and string.sub(v, -1) == '"' then
+                    go = string.sub(v, 2, -2)
+                else
+                    go = tostring(v)
+                end
+            end
+        elseif t == "number" or t == "boolean" then
+            go = tostring(v)
+        elseif t == "list" then
+            local function readTable(t)
+                local togo = "["
+                if #t == 0 then
+                    togo = togo .. "]"
+                else
+                    for i, v in ipairs(t) do
+                        if _local.typeof(v) == "list" then
+                            if i == #t then
+                                togo = togo .. readTable(v) .. "]"
+                            else
+                                togo = togo .. readTable(v) .. ", "
+                            end
+                        else
+                            local valueConversion = function(rawValue)
+                                if _local.typeof(rawValue) == "string" then
+                                    return '"' .. tostring(rawValue) .. '"'
+                                else
+                                    return tostring(rawValue)
+                                end
+                            end
+                            if i == #t then
+                                togo = togo .. valueConversion(v) .. "]"
+                            else
+                                togo = togo .. valueConversion(v) .. ", "
+                            end
+                        end
+                    end
+                end
+                return togo
+            end
+            go = readTable(v)
+        end
+        --print(type(go))
+        io.stdout:write(go)
+    end
+    return true
+end
 runtime["print"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
     if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
@@ -521,7 +582,52 @@ runtime["clear"] = function(args, utils)
     os.execute("cls")
     return true
 end
+runtime["while"] = function(args, utils)
+    local operatorRaW = args[1]
+    local operator = _local.resolveSpecificArgs(operatorRaW, utils)
+    if _local.typeof(operator) == "list" and operator[1] == "_!!dDecodePSCFail!!_" then 
+        return false, operator[2]
+    end
+    local commands = {}
+    for i, v in pairs(args) do
+        if _local.typeof(v) == "string" then
+            if v:sub(1, 1) == '(' and v:sub(-1) == ')' then
+                table.insert(commands, v)
+            end
+        end
+    end
+    local function loopa()
+        for ic, c in ipairs(commands) do
+            local r, returns = require("src.core"):run(c, nil, true)
+            if r[1] == false then 
+                return false, "[while] function error [" .. tostring(ic) .. "]: " .. r[2] 
+            end
+            if r[2] and _local.typeof(r[2]) == "string" and string.sub(r[2], 1, 9) == "_-!@!_-!-" then
+                return true, returns or r[2]
+            end
+        end
+    end
+    if _local.typeof(operator) == "boolean" then
+        while operator do
+            local a, b = loopa()
+            if a == false then
+                return false, b
+            end
 
+            if a ~= nil then
+                if b == "_-!@!_-!-continue-skip-this-thing-rn!" then
+                    -- continue
+                elseif b == "_-!@!_-!-break-and-stop-rn!" then
+                    break
+                end
+            end
+            operator = _local.resolveSpecificArgs(operatorRaW, utils)
+        end
+    else
+        return false, "[while] expected a bool but received [1]: '" .. _local.typeof(operator) .. "'"
+    end
+    return true
+end
 runtime["for"] = function(args, utils)
     local operator = _local.resolveSpecificArgs(table.remove(args, 1), utils)
     if _local.typeof(operator) == "list" and operator[1] == "_!!dDecodePSCFail!!_" then 
@@ -539,7 +645,7 @@ runtime["for"] = function(args, utils)
         end
     end
     local function loopa(i, v)
-        for _, c in ipairs(commands) do
+        for ic, c in ipairs(commands) do
             local translated_v, r = _local.resolveSpecificArgs(v, utils, true)
             c = c:gsub("{" .. (loopArgs[1] or "_index") .. "}", tostring(i))
             if type(translated_v) == "table" then
@@ -548,7 +654,7 @@ runtime["for"] = function(args, utils)
             c = c:gsub("{" .. (loopArgs[2] or "_value") .. "}", tostring(translated_v))
             local r, returns = require("src.core"):run(c, nil, true)
             if r[1] == false then 
-                return false, "[for] function error [" .. tostring(i) .. "]: " .. r[2] 
+                return false, "[for] function error [" .. tostring(ic) .. "]: " .. r[2] 
             end
             if r[2] and _local.typeof(r[2]) == "string" and string.sub(r[2], 1, 9) == "_-!@!_-!-" then
                 return true, returns or r[2]
@@ -559,6 +665,11 @@ runtime["for"] = function(args, utils)
         for index, value in ipairs(operator) do
             local a, b = loopa(index, value)
             if a ~= nil then
+                if a == false then
+                    print("failed")
+                    return false, b
+                end
+
                 if b == "_-!@!_-!-continue-skip-this-thing-rn!" then
                     -- continue
                 elseif b == "_-!@!_-!-break-and-stop-rn!" then
@@ -570,6 +681,11 @@ runtime["for"] = function(args, utils)
         for index = 1, operator do
             local a, b = loopa(index, "nil")
             if a ~= nil then
+                if a == false then
+                    print("failed")
+                    return false, b
+                end
+
                 if b == "_-!@!_-!-continue-skip-this-thing-rn!" then
                     -- continue
                 elseif b == "_-!@!_-!-break-and-stop-rn!" then
@@ -1072,7 +1188,31 @@ runtime["upper?"] = function(args, utils)
     end
     return true, found
 end
+runtime["ord"] = function(args, utils)
+	args = _local.resolveArgs(args, utils)
+	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
+	if type(args[1]) ~= "string" then
+		return false, "[starts] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+	end
+
+	return true, string.byte(args[1])
+end
+runtime["chr"] = function(args, utils)
+	args = _local.resolveArgs(args, utils)
+	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
+
+	if type(args[1]) ~= "number" then
+		return false, "[chr] expected a number but received [1]: '" .. _local.typeof(args[1]) .. "'"
+	end
+
+    if args[1] > 255 then
+        return false, "[chr] out of range [1!]: (" .. tostring(args[1]) .. " !< 255)"
+    end
+
+    local a = string.char(args[1])
+	return true, a
+end
 runtime["lower?"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
     if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
@@ -1101,33 +1241,16 @@ runtime["lower?"] = function(args, utils)
     end
     return true, found
 end
-runtime["listadd"] = function(args, utils)
+runtime["at"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 	local list = table.remove(args, 1)
 
 	if type(list) ~= "table" then
-		return false, "[listadd] expected a list but received [1]: '" .. _local.typeof(list) .. "'"
-	end
-
-	for i, v in args do
-		table.insert(list, v)
-	end
-
-	local a = _local.tableToString(list)
-
-	return true, a
-end
-runtime["listget"] = function(args, utils)
-	args = _local.resolveArgs(args, utils)
-	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
-	local list = table.remove(args, 1)
-
-	if type(list) ~= "table" then
-		return false, "[listget] expected a list but received [1]: '" .. _local.typeof(list) .. "'"
+		return false, "[at] expected a list but received [1]: '" .. _local.typeof(list) .. "'"
 	end
 	if type(args[1]) ~= "number" then
-		return false, "[listget] expected a number but received [2]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[at] expected a number but received [2]: '" .. _local.typeof(args[1]) .. "'"
 	end
 
 	local success, args = pcall(function()
@@ -1139,6 +1262,95 @@ runtime["listget"] = function(args, utils)
 	end
 
 	return true, args
+end
+runtime["pop"] = function(args, utils)
+	args = _local.resolveArgs(args, utils)
+	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
+	local list = table.remove(args, 1)
+
+	if type(list) ~= "table" then
+		return false, "[at] expected a list but received [1]: '" .. _local.typeof(list) .. "'"
+	end
+
+	local success, args = pcall(function()
+		return table.remove(list, #list)
+	end)
+
+	if not success then
+		args = nil
+	end
+
+	return true, _local.tableToString(args)
+end
+runtime["set"] = function(args, utils)
+	args = _local.resolveArgs(args, utils)
+	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
+	local list = table.remove(args, 1)
+
+	if type(list) ~= "table" then
+		return false, "[set] expected a list but received [1]: '" .. _local.typeof(list) .. "'"
+	end
+    
+	if type(args[1]) ~= "number" then
+		return false, "[at] expected a number but received [2]: '" .. _local.typeof(args[1]) .. "'"
+	end
+    
+	--[[if not args[2] then
+		return false, "[at] expected any value but received [3]: 'nil'"
+	end]]
+
+	local success, args = pcall(function()
+        if args[2] == nil then
+            list = table.remove(list, args[1])
+        elseif list[args[1]] == nil then
+            list = table.insert(list, args[2])
+        else
+            list[args[1]] = args[2]
+        end
+		return true
+	end)
+
+	return true, _local.tableToString(list)
+end
+runtime["append"] = function(args, utils)
+	args = _local.resolveArgs(args, utils)
+	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
+	local list = table.remove(args, 1)
+
+	if type(list) ~= "table" then
+		return false, "[append] expected a list but received [1]: '" .. _local.typeof(list) .. "'"
+	end
+
+	for i, v in args do
+		table.insert(list, v)
+	end
+
+	local a = _local.tableToString(list)
+
+	return true, a
+end
+runtime["push"] = function(args, utils)
+	args = _local.resolveArgs(args, utils)
+	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
+	local list = table.remove(args, 1)
+
+	if type(list) ~= "table" then
+		return false, "[push] expected a list but received [1]: '" .. _local.typeof(list) .. "'"
+	end
+
+    if not args[1] then
+		return false, "[push] expected a any value but received [2]: '" .. _local.typeof(list) .. "'"
+    end
+
+	local success, r = pcall(function()
+        r = list
+        for i, v in pairs(args) do
+            table.insert(r, v)
+        end
+		return true
+	end)
+
+	return true, list
 end
 runtime["listrem"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
@@ -1410,6 +1622,40 @@ runtime["listclr"] = function(args, utils)
 end
 
 -- here to do the FS"
+runtime["read"] = function(args, utils)
+	args = _local.resolveArgs(args, utils)
+	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
+
+	if type(args[1]) ~= "string" then
+		return false, "[read] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+	end
+
+    local found = fs.isfile(args[1])
+	if not found then
+		return false, "[read] path is not a valid file: '" .. tostring(args[1]) .. "'"
+	end
+
+    local read = fs.read(args[1])
+
+	return true, read
+end
+runtime["dir"] = function(args, utils)
+	args = _local.resolveArgs(args, utils)
+	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
+
+	if type(args[1]) ~= "string" then
+		return false, "[dir] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+	end
+
+    local found = fs.isdir(args[1])
+	if not found then
+		return false, "[dir] path is not a valid folder: '" .. tostring(args[1]) .. "'"
+	end
+
+    local read = fs.list(args[1])
+
+	return true, read
+end
 
 runtime["alphabet"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
@@ -2271,7 +2517,7 @@ runtime["filter"] = function(args, utils)
 			if type(v) == "table" then
 				v = _local.tableToString(v)
 			end
-			local returns = require("src.core"):run("(" .. args[2] .. " " .. v .. ")", nil, true)
+			local returns = require("src.core"):run("(" .. args[2] .. " " .. tostring(v) .. ")", nil, true)
 
 			if returns[1] == false then
 				return false, "[filter] [2] function: "  .. (returns[2] or "")

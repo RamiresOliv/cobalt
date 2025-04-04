@@ -22,35 +22,39 @@ local temporary = {
   }
 }
 
+local wait = function(n)
+  local t0 = os.clock()
+  while os.clock() - t0 <= n do end
+end
+
 temporary.check = function()
   if not fs.check(script_dir .. "/temp") then
-    fs.mkdir(script_dir .. "/" .. "temp")
-    fs.mkdir(script_dir .. "/" .. "temp/funcs")
-    fs.mkdir(script_dir .. "/" .. "temp/client")
-    fs.mkdir(script_dir .. "/" .. "temp/vars")
+    fs.mkdir(script_dir .. "temp")
+    fs.mkdir(script_dir .. "temp/funcs")
+    fs.mkdir(script_dir .. "temp/client")
+    fs.mkdir(script_dir .. "temp/vars")
   end
   if not fs.check(script_dir .. "/temp/funcs") then
-    fs.mkdir(script_dir .. "/" .. "temp/funcs")
+    fs.mkdir(script_dir .. "temp/funcs")
   end
   if not fs.check(script_dir .. "/temp/client") then
-    fs.mkdir(script_dir .. "/" .. "temp/client")
+    fs.mkdir(script_dir .. "temp/client")
   end
   if not fs.check(script_dir .. "/temp/vars") then
-    fs.mkdir(script_dir .. "/" .. "temp/vars")
+    fs.mkdir(script_dir .. "temp/vars")
   end
 end
 temporary.check()
 
 temporary.clear = function()
-  temporary.check()
-  for _, file in ipairs(fs.list(script_dir .. "/" .. temporary.paths.http)) do
-    fs.remove(script_dir .. "/" .. temporary.paths.http .. "/" .. file)
+  for _, file in pairs(fs.list(script_dir .. temporary.paths.http)) do
+    fs.remove(script_dir .. temporary.paths.http .. "/" .. file)
   end
-  for _, file in ipairs(fs.list(script_dir .. "/" .. temporary.paths.functions)) do
-    fs.remove(script_dir .. "/" .. temporary.paths.functions .. "/" .. file)
+  for _, file in pairs(fs.list(script_dir .. temporary.paths.functions)) do
+    fs.remove(script_dir .. temporary.paths.functions .. "/" .. file)
   end
-  for _, file in ipairs(fs.list(script_dir .. "/" .. temporary.paths.variables)) do
-    fs.remove(script_dir .. "/" .. temporary.paths.variables .. "/" .. file)
+  for _, file in pairs(fs.list(script_dir .. temporary.paths.variables)) do
+    fs.remove(script_dir .. temporary.paths.variables .. "/" .. file)
   end
 end
 
@@ -175,7 +179,10 @@ function me:run(code, rawArgs, mr)
   if not code then return {false, "empty request."} end
 
   local success, returns = pcall(function()
-		local lines = code:gsub("\n?;[^\n]*", ""):gsub("	", ""):split("\n")
+    local lines = {}
+    for line in code:gsub("\n?;[^\n]*", ""):gsub("	", ""):gmatch("[^\n]+") do
+      table.insert(lines, line)
+    end
 		local lines_concats = table.concat(lines, " ")
 		for match in lines_concats:gmatch("%b()") do
       proccess = proccess + 1
@@ -204,8 +211,14 @@ function me:run(code, rawArgs, mr)
         end
 
         local canStringfy = false
-        local vType = type(value)
 
+        if value == "true" then
+          value = true
+        elseif value == "false" then
+          value = false
+        end
+
+        local vType = type(value)
         if vType == "number" and expected == "string" then
           canStringfy = true
         elseif vType == "boolean" and expected == "string" then
@@ -270,7 +283,7 @@ function me:run(code, rawArgs, mr)
             end
             return t
           end)()) do
-            local vType, stringfy = describe(v_args, functionData.params[#functionData.params])
+            local vType, stringfy = describe(v_args, functionData.params[_])
             if v == "any" or vType == "any" or vType == "function" or v == vType then
               foundExpect = true
               break
@@ -284,7 +297,7 @@ function me:run(code, rawArgs, mr)
         end
 
         local funcRefFunc = runtime[base_funcName]
-        if not funcRefFunc then return {false, "Function reference doesn't exist. (prob of a huge bug)"} end
+        if not funcRefFunc then return {false, "Function reference doesn't exist. (maybe huge bug)"} end
 
         local state, data, refuseStop = funcRefFunc(base_args)
 
@@ -348,6 +361,7 @@ function me:run(code, rawArgs, mr)
     print(cli.colorize(cli.colorize("[Error]: High level error:", "magenta"), "bold"))
     print(returns)
     temporary.clear()
+    os.exit()
     return {false, returns, true}
   elseif type(returns) == "table" and returns[1] == false then
     return {false, returns[2]}
