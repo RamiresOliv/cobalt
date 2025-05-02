@@ -1431,44 +1431,83 @@ runtime["crop"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
-	if type(args[1]) ~= "string" then
-		return false, "[skip] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+	if type(args[1]) ~= "string" and type(args[1]) ~= "table" then
+		return false, "[crop] expected a string or list but received [1]: '" .. _local.typeof(args[1]) .. "'"
 	end
 	if type(args[2]) ~= "number" then
-		return false, "[skip] expected a number but received [2]: '" .. _local.typeof(args[2]) .. "'"
+		return false, "[crop] expected a number but received [2]: '" .. _local.typeof(args[2]) .. "'"
 	end
 
 	if args[3] and type(args[3]) ~= "number" then
-		return false, "[skip] expected a number but received [3]: '" .. _local.typeof(args[3]) .. "'"
+		return false, "[crop] expected a number but received [3]: '" .. _local.typeof(args[3]) .. "'"
 	end
 
-	return true, string.sub(args[1], args[2], (args[3] or args[2]))
+    if type(args[1]) == "string" then
+        return true, string.sub(args[1], args[2], (args[3] or args[2]))
+    elseif type(args[1]) == "table" then
+        if args[3] then
+            local final = {}
+            for i = args[2], args[3] do
+                table.insert(final, args[1][i])
+            end
+            return true, final
+        end
+        return true, {args[1][args[2]]}
+    end
+
+	return false, "[crop] ? idk (thiis is not expected to be returned)" -- something really bad happened... this is not expected to return.
 end
 runtime["first"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
-	if type(args[1]) ~= "string" then
-		return false, "[first] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+	if type(args[1]) ~= "string" and type(args[1]) ~= "table"  then
+		return false, "[first] expected a string or list but received [1]: '" .. _local.typeof(args[1]) .. "'"
 	end
-	if type(args[2]) ~= "number" or args[2] < 0 then
+	--[[if type(args[2]) ~= "number" or args[2] < 0 then
 		return false, "[first] expected a positive number but received [2]: '" .. _local.typeof(args[2]) .. "'"
-	end
+	end]]
 
-	return true, string.sub(args[1], 0, args[2])
+    if type(args[1]) == "string" then
+        return true, string.sub(args[1], 0, args[2] or 1)
+    elseif type(args[1]) == "table" then
+        if args[2] then
+            local final = {}
+            for i = 1, args[2] do
+                table.insert(final, args[1][i])
+            end
+            return true, final
+        end
+        return true, args[1][1]
+    end
+
+    return false, "[first] idk"
 end
 runtime["last"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
-	if type(args[1]) ~= "string" then
-		return false, "[last] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+	if type(args[1]) ~= "string" and type(args[1]) ~= "table" then
+		return false, "[last] expected a string or list but received [1]: '" .. _local.typeof(args[1]) .. "'"
 	end
-	if type(args[2]) ~= "number" or args[2] < 0 then
+	--[[if type(args[2]) ~= "number" or args[2] < 0 then
 		return false, "[last] expected a positive number but received [2]: '" .. _local.typeof(args[2]) .. "'"
-	end
+	end]]
 
-	return true, string.sub(args[1], -args[2], -1)
+    if type(args[1]) == "string" then
+        return true, string.sub(args[1], -args[2] or 1, -1)
+    elseif type(args[1]) == "table" then
+        if args[2] then
+            local final = {}
+            for i = math.max(#args[1] - args[2] + 1, 1), #args[1] do
+                table.insert(final, args[1][i])
+            end
+            return true, final
+        end
+        return true, args[1][#args[1]]
+    end
+
+	return false, "[last] idk"
 end
 runtime["find"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
@@ -1578,7 +1617,7 @@ runtime["rpick"] = function(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
 	if type(args[1]) ~= "table" and type(args[1]) ~= "string" then
-		return false, "[pick] expected a list or a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[rpick] expected a list or a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
 	end
 
 	local main = args[1]
@@ -1621,7 +1660,7 @@ runtime["listclr"] = function(args, utils)
 	return true, _local.tableToString(args[1])
 end
 
--- here to do the FS"
+-- here to do the FS
 runtime["fdexists?"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
