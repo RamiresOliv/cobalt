@@ -2,7 +2,7 @@ local api = require("src.api")
 
 local metadata = {}
 metadata.name = "cobalt"
-metadata.version = "1.7.6"
+metadata.version = "1.8.1"
 metadata.license = "MIT"
 metadata.docs = "https://github.com/RamiresOliv/Cobalt"
 metadata.compiler = "Luau"

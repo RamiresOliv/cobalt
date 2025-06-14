@@ -1,67 +1,54 @@
 local json = require("modules.dkjson")
-local arguments = require("src.args")
-local utils = require("src.utils")
+local tools = require("src.tools")
 local api = require("src.api")
 local runtime = require("src.runtime")
+local metadata = require("src.metadata")
 local cli = require("src.cli")
 local fs = require("src.filesystem")
-
-ShouldClearTempsAfterDone = true;
-
 local me = {}
 
-local script_dir_raw = debug.getinfo(1, "S").source:sub(2):match("(.+)[/\\]")
-local script_dir = ""
-if script_dir_raw ~= ".\\src" then script_dir = script_dir_raw .. "\\..\\" end
+-- public params: (debug stuff etc)
+ShouldClearTempsAfterDone = true;
+AllowDebugPrints = false; -- nuh uh
 
-local temporary = {
-  paths = {
-    http = "./temp/client",
-    functions = "./temp/funcs",
-    variables = "./temp/vars"
-  }
-}
-
-local wait = function(n)
-  local t0 = os.clock()
-  while os.clock() - t0 <= n do end
-end
-
-temporary.check = function()
-  if not fs.check(script_dir .. "/temp") then
-    fs.mkdir(script_dir .. "temp")
-    fs.mkdir(script_dir .. "temp/funcs")
-    fs.mkdir(script_dir .. "temp/client")
-    fs.mkdir(script_dir .. "temp/vars")
-  end
-  if not fs.check(script_dir .. "/temp/funcs") then
-    fs.mkdir(script_dir .. "temp/funcs")
-  end
-  if not fs.check(script_dir .. "/temp/client") then
-    fs.mkdir(script_dir .. "temp/client")
-  end
-  if not fs.check(script_dir .. "/temp/vars") then
-    fs.mkdir(script_dir .. "temp/vars")
-  end
-end
-temporary.check()
-
-temporary.clear = function()
-  for _, file in pairs(fs.list(script_dir .. temporary.paths.http)) do
-    fs.remove(script_dir .. temporary.paths.http .. "/" .. file)
-  end
-  for _, file in pairs(fs.list(script_dir .. temporary.paths.functions)) do
-    fs.remove(script_dir .. temporary.paths.functions .. "/" .. file)
-  end
-  for _, file in pairs(fs.list(script_dir .. temporary.paths.variables)) do
-    fs.remove(script_dir .. temporary.paths.variables .. "/" .. file)
-  end
-end
-
-function testConvert(v)
+-------------------------------------------- code
+function IndexArgHandler(v, args)
   v = tostring(v)
-  for _, file in ipairs(fs.list(script_dir .. temporary.paths.variables)) do
-    local filePath = script_dir .. temporary.paths.variables .. "/" .. file
+
+  if type(args) == "table" then
+    for key, value in pairs(args) do
+      v = v:gsub("{%%" .. tostring(key) .. "}", tostring(value))
+    end
+  end
+
+  local success, n = pcall(function()
+    return tonumber(v)
+  end)
+  if success and n ~= nil then
+    v = n
+  elseif v:sub(1, 1) == '"' and v:sub(-1) == '"' then
+    v = "_!str!_-" .. tostring(tools.stringToHex(v:sub(2, -2)))
+  elseif v == "true" then
+    v = true
+  elseif v == "false" then
+    v = false
+  elseif v == "nil" then
+    v = nil
+  else
+    if type(v) == "string" then
+      for key, value in pairs(metadata:constants()) do
+        v = v:gsub("{" .. tostring(key) .. "}", tostring(value))
+      end
+    end
+  end
+
+  return v
+end
+
+function TestConvert(v)
+  v = tostring(v)
+  for _, file in ipairs(fs.list(tools.globals.dir .. tools.globals.temporary.paths.variables)) do
+    local filePath = tools.globals.dir .. tools.globals.temporary.paths.variables .. "/" .. file
     local togoV = fs.read(filePath)
 
     if togoV == "true" then
@@ -99,7 +86,7 @@ function testConvert(v)
   return v
 end
 
-function splitParentheses(str)
+function SplitParentheses(str)
   local result = {}
   local level = 0
   local start_index = 1
@@ -120,7 +107,7 @@ function splitParentheses(str)
   return result
 end
 
-function getLine(things)
+function GetLine(things)
   things = things:sub(2, -2)
   local args = {}
   local i = 1
@@ -163,16 +150,16 @@ end
 
 -- eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
 function me:init(code, rawArgs, mustReturn)
-  temporary.check()
-  temporary.clear()
+  tools.globals.temporary.check()
+  tools.globals.temporary.clear()
   local run = me:run(code, rawArgs, mustReturn)
-  if ShouldClearTempsAfterDone then temporary.clear() end
+  if ShouldClearTempsAfterDone then tools.globals.temporary.clear() end
   return run;
 end
 
 -- help me
-function me:run(code, rawArgs, mr)
-  temporary.check()
+function me:run(code, rawArgs, mr, _COMPILER_RETURN_STATUS) -- NOTE: do not use _COMPILER_RETURN_STATUS. It's compiler usage only.
+  tools.globals.temporary.check()
 
   local proccess = 0
   if mr == nil then mr = false end
@@ -187,12 +174,12 @@ function me:run(code, rawArgs, mr)
 		for match in lines_concats:gmatch("%b()") do
       proccess = proccess + 1
 
-      local base_args = getLine(match)
+      local base_args = GetLine(match)
       local base_funcName = table.remove(base_args, 1)
 
       if not base_funcName then return {false, 'incomplete statement.'} end
 
-      local scriptFuncExists = fs.check(script_dir .. temporary.paths.functions .. "/" .. base_funcName .. ".json")
+      local scriptFuncExists = fs.check(tools.globals.dir .. tools.globals.temporary.paths.functions .. "/" .. base_funcName .. ".json")
       local functionData = api.mapping[base_funcName]
 
       if not scriptFuncExists and not functionData then
@@ -200,11 +187,11 @@ function me:run(code, rawArgs, mr)
       end
 
       for i, v in ipairs(base_args) do
-        base_args[i] = arguments:indexArgHandler(v, rawArgs)
+        base_args[i] = IndexArgHandler(v, rawArgs)
       end
 
       local function describe(value, expected)
-        value = testConvert(value)
+        value = TestConvert(value)
         local toNumberPcallSuccess, r = pcall(function() return tonumber(tostring(value)) end)
         if toNumberPcallSuccess and r ~= nil then
           value = tonumber(tostring(value))
@@ -291,7 +278,7 @@ function me:run(code, rawArgs, mr)
           end
 
           if not foundExpect then
-            return {false, "[" .. base_funcName .. "] expected " .. tostring(argExpects) .. " but received [" .. tostring(i_args) .. "]: '" .. utils.typeof(v_args) .. "'"}
+            return {false, "[" .. base_funcName .. "] expected " .. tostring(argExpects) .. " but received [" .. tostring(i_args) .. "]: '" .. tools.typeof(v_args) .. "'"}
           end
           ::continue::
         end
@@ -301,12 +288,14 @@ function me:run(code, rawArgs, mr)
 
         local state, data, refuseStop = funcRefFunc(base_args)
 
-        if type(data) == "table" and data[1] == "_-!@!_-!-return-and-stop-rn!" then return {true, data[2], nil, true} end
+        --if type(data) == "table" then print(data[1]) end -- debug
+        if _COMPILER_RETURN_STATUS == true then return {true, data, refuseStop} end 
+        if data ~= nil and type(data) == "table" and data[1] == "_-!@!_-!-return-and-stop-rn!" then return {true, data[2], nil, true} end
         if data ~= nil and type(data) == "table" and (data[1] == "_-!@!_-!-continue-skip-this-thing-rn!" or data[1] == "_-!@!_-!-break-and-stop-rn!") then return {true, nil, nil, true} end
         if state == false then return {false, data} end
         if mr == true then return {true, data, refuseStop} end
       elseif scriptFuncExists then
-        local content = fs.read(script_dir .. temporary.paths.functions .. "/" .. base_funcName .. ".json")
+        local content = fs.read(tools.globals.dir .. tools.globals.temporary.paths.functions .. "/" .. base_funcName .. ".json")
         local s, decode = pcall(function()
           return json.decode(content)
         end)
@@ -324,14 +313,17 @@ function me:run(code, rawArgs, mr)
             c = c:gsub("{" .. name .. "}", tostring(base_args[i]))
           end
 
-          local r, returns = me:run(c, nil, true)
+          local r = me:run(c, nil, true, true)
           if r[1] == false then
             print(cli.colorize("[" .. base_funcName .. "] Error origin in function '" .. base_funcName .. "': " .. tostring(r[2] or "unknown"), "red"))
             return {false, r[2]}
           end
 
+          -- this should fix the return problems in functions. At least... is what I did and worked.
+          if r ~= nil and type(r) == "table" and type(r[2]) == "table" and r[2][1] == "_-!@!_-!-return-and-stop-rn!" then return {true, r[2][2], true} end
+
           if mr == true then
-            return {true, arguments:indexArgHandler(r[2], rawArgs), r[4]}
+            return {true, IndexArgHandler(r[2], rawArgs), r[4]}
           end
 
           return {true}
@@ -360,7 +352,7 @@ function me:run(code, rawArgs, mr)
   if not success then
     print(cli.colorize(cli.colorize("[Error]: High level error:", "magenta"), "bold"))
     print(returns)
-    temporary.clear()
+    tools.globals.temporary.clear()
     os.exit()
     return {false, returns, true}
   elseif type(returns) == "table" and returns[1] == false then
@@ -374,14 +366,16 @@ function me:run(code, rawArgs, mr)
   end
 end
 
+-- apart.
 function me:fixArgs(player, code, rawArgs)
   for match in code:gmatch("%b()") do
-    local args = getLine(match)
+    local args = GetLine(match)
     for i, v in ipairs(args) do
-      args[i] = arguments:indexArgHandler(v, rawArgs)
+      args[i] = IndexArgHandler(v, rawArgs)
     end
   end
   return code
 end
 
+tools.globals.temporary.check()
 return me

@@ -8,8 +8,8 @@ Able to, manage http requests, JSON, variables, file system, math and more.
 
 ## 🌙 Lua
 
-You should have lua installed. If not, we have lua 5.4 for you! Located at `bin`<br>
-But remember to install it and add it at `PATH` env.<br>
+<b>You should have lua installed.</b><br>
+Install it and add it at `PATH` env.<br>
 Install from [here](https://www.lua.org/download.html)
 
 ## 💻 Usage

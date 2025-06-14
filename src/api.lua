@@ -465,7 +465,7 @@ exports.mapping = {
 		params = {"string", "number"},
 		returns = "string",
 	},
-	["crop"] = { -- to do: make string and list compatibility
+	["crop"] = {
 		description = 'Crops an specific amount of characters in a string or list values. The first value is the start index and the second value is the end index. i.g: (crop "Hello World!" 1 5): "ello"',
 		requiredEntries = 2,
 		params = {"string/list", "number", "number"},
@@ -771,6 +771,8 @@ exports.mapping = {
 		params = {},
 		returns = "number",
 	},
+
+	-- json/http handling
 	["json-encode"] = {
 		description = "Returns a JSON string native translated by the given value.",
 		requiredEntries = 1,
@@ -802,6 +804,8 @@ exports.mapping = {
 		params = {"any"},
 		returns = "string",
 	},
+
+	-- checkers/utils
 	["odd?"] = {
 		description = "Returns a boolean if number is odd or not.",
 		requiredEntries = 1,
@@ -850,6 +854,14 @@ exports.mapping = {
 		params = {"list", "string"},
 		returns = "list",
 	},
+
+	-- cobalt debug things
+	["cobalt_temp_size"] = {
+		description = "returns a table with amount of data in each temporary sectors of cobalt, {funcs, client, vars}",
+		requiredEntries = 0,
+		params = {},
+		returns = "list",
+	}
 }
 
 exports.paramsNames = {
@@ -862,17 +874,17 @@ exports.paramsNames = {
 	list = "table",
 };
 
-exports.natives = {
+exports.natives = {  -- callers, like {E} <- by default writes "2.71828" or {username} writes "test_user"
 	E = 2.71828,
 	PI = math.pi,
 	ZERO = 0,
 	HUGE = math.huge,
-	desktopname = "test_pc",
-	username = "test_user",
-	cd = "test"
+	desktopname = "test_pc", -- useless
+	username = "test_user", -- useless
+	cd = "test" -- useless
 }
 
-exports.ilegalChars = {
+exports.ilegalChars = { -- no need changes. But well. Go ahead.
 	"","\\","/",
 	"?","!","¡",
 	"¿","<",">",

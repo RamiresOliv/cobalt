@@ -1,89 +1,12 @@
 local json = require("modules.dkjson")
 local fs = require("src.filesystem")
 local metadata = require("src.metadata")
-
-
-local script_dir_raw = debug.getinfo(1, "S").source:sub(2):match("(.+)[/\\]")
-local script_dir = ""
-if script_dir_raw ~= ".\\src" then script_dir = script_dir_raw .. "\\..\\" end
-
-local temporary = {
-    paths = {
-        http = "./temp/client",
-        functions = "./temp/funcs",
-        variables = "./temp/vars"
-    }
-}
+local tools = require("src.tools")
 
 local _local = {}
-_local.wait = function(n)
-    local t0 = os.clock()
-    while os.clock() - t0 <= n do end
-end
-_local.lerp = function(a, b, t)
-    return a + (b - a) * t
-end
-_local.concat = function(list, separator)
-    for i, v in pairs(list) do
-        list[i] = tostring(v)
-    end
-    return table.concat(list, separator or " ")
-end
-_local.typeof = function(thing)
-    local t = type(thing)
-    if t == "table" then t = "list" end
-    return t
-end
-_local.stringToHex = function(str)
-    return (str:gsub('.', function(c)
-        return string.format('%02X', string.byte(c))
-    end))
-end
-_local.hexToString = function(str)
-    return (str:gsub('..', function(c)
-        return string.char(tonumber(c, 16))
-    end))
-end
 
-_local.tableToString = function(list)
-    if _local.typeof(list) ~= "list" then return nil end
-    local dat = "["
-    for i, v in ipairs(list) do
-        if _local.typeof(v) == "list" then
-            v = _local.tableToString(v)
-        end
-        dat = dat .. tostring(v)
-        if i < #list then dat = dat .. ", " end
-    end
-    dat = dat .. "]"
-    return dat
-end
-
-----------------------------------------
--- Função para converter JSON em tabela (recursivamente)
-local function jsonObjToTable(json_obj)
-    local v = json.decode(json_obj)
-    local function convertTable(t)
-        local result = {}
-        for _, value in pairs(t) do
-            if _local.typeof(value) == "list" then
-                table.insert(result, convertTable(value))
-            else
-                table.insert(result, value)
-            end
-        end
-        return result
-    end
-    if _local.typeof(v) == "list" then
-        return convertTable(v)
-    else
-        return v
-    end
-end
-
-----------------------------------------
--- Função resolve_args – responsável por processar argumentos
-local function resolve_args(v, utils, allowSpecificReturns)
+---------------------------------------- code "hell"
+local function resolve_args(v, others, allowSpecificReturns)
     local function remove_outer_quotes(s)
         if s:sub(1, 1) == '"' and s:sub(-1) == '"' then
             return s:sub(2, -2)
@@ -92,10 +15,10 @@ local function resolve_args(v, utils, allowSpecificReturns)
         end
     end
 
-    if _local.typeof(v) == "string" then
+    if tools.typeof(v) == "string" then
         if string.sub(v, 1, 8) == "_!str!_-" then
             local hex = string.sub(v, 9)
-            local str = _local.hexToString(hex)
+            local str = tools.hexToString(hex)
             v = str
         elseif string.sub(v, 1, 8) == "_!fmt!_-" then
             v = string.sub(v, 9)
@@ -110,9 +33,9 @@ local function resolve_args(v, utils, allowSpecificReturns)
         v = nil
     end
 
-    if _local.typeof(v) == "string" then
-        for _, file in ipairs(fs.list(script_dir .. temporary.paths.variables)) do
-          local filePath = script_dir .. temporary.paths.variables .. "/" .. file
+    if tools.typeof(v) == "string" then
+        for _, file in ipairs(fs.list(tools.globals.dir .. tools.globals.temporary.paths.variables)) do
+          local filePath = tools.globals.dir .. tools.globals.temporary.paths.variables .. "/" .. file
             local togoV = fs.read(filePath)
             if togoV == "true" then
                 togoV = true
@@ -129,9 +52,9 @@ local function resolve_args(v, utils, allowSpecificReturns)
             if ok and n ~= nil then
                 togo = tostring(n)
             end
-            if _local.typeof(togoV) == "boolean" then
+            if tools.typeof(togoV) == "boolean" then
                 togo = tostring(togoV)
-            elseif _local.typeof(togoV) == "string" and string.sub(togoV, 1, 1) == "[" and string.sub(togoV, -1) == "]" then
+            elseif tools.typeof(togoV) == "string" and string.sub(togoV, 1, 1) == "[" and string.sub(togoV, -1) == "]" then
                 togo = togoV
             end
             local final = togo
@@ -141,7 +64,7 @@ local function resolve_args(v, utils, allowSpecificReturns)
             final = final:gsub("%%", "#")
             v = v:gsub("{" .. file .. "}", final)
         end
-        if _local.typeof(v) == "string" then
+        if tools.typeof(v) == "string" then
             for i_, v_ in pairs(metadata:constants()) do
                 v = v:gsub("{" .. tostring(i_) .. "}", tostring(v_))
             end
@@ -149,29 +72,29 @@ local function resolve_args(v, utils, allowSpecificReturns)
     end
 
     local thingToReturn = nil
-    if _local.typeof(v) == "string" and v:sub(1, 1) == '(' and v:sub(-1) == ')' then
+    if tools.typeof(v) == "string" and v:sub(1, 1) == '(' and v:sub(-1) == ')' then
         local compilation = require("src.core"):run(v, nil, true)
         thingToReturn = compilation[4]
         if compilation[1] == false then
-            if _local.typeof(compilation[2]) == "list" then
+            if tools.typeof(compilation[2]) == "list" then
                 return {false, "[sub-function]: " .. compilation[2][2]}
             else
                 return {false, "[sub-function]: " .. compilation[2]}
             end
         end
         if compilation[3] ~= true then
-            if _local.typeof(compilation[2]) == "list" then
-                local a = _local.resolveArgs(compilation[2], utils)
+            if tools.typeof(compilation[2]) == "list" then
+                local a = _local.resolveArgs(compilation[2], others)
                 compilation[2] = a
             else
-                compilation[2] = _local.resolveSpecificArgs(compilation[2], utils, allowSpecificReturns)
+                compilation[2] = _local.resolveSpecificArgs(compilation[2], others, allowSpecificReturns)
             end
         end
         if compilation[1] == "_!!dDecodePSCFail!!_" then
             return false, compilation[2]
         end
         v = compilation[2]
-    elseif _local.typeof(v) == "string" and v:sub(1, 1) == '[' and v:sub(-1) == ']' then
+    elseif tools.typeof(v) == "string" and v:sub(1, 1) == '[' and v:sub(-1) == ']' then
 
         v = v:sub(2, -2)
         local function split_ignoring_quotes_and_brackets(str)
@@ -211,7 +134,7 @@ local function resolve_args(v, utils, allowSpecificReturns)
             value = value:match("^%s*(.-)%s*$")
             value = remove_outer_quotes(value)
             local dec = _local.resolveSpecificArgs(value, utils)
-            if _local.typeof(dec) == "list" and dec[1] == false then 
+            if tools.typeof(dec) == "list" and dec[1] == false then 
                 return {false, dec[2]}
             end
             table.insert(rendered_table, dec)
@@ -221,7 +144,7 @@ local function resolve_args(v, utils, allowSpecificReturns)
         local stack = { result }
         local currentTable = result
         for _, value in ipairs(rendered_table) do
-            if _local.typeof(value) == "string" and value:sub(1, 1) == '[' and value:sub(-1) == ']' then
+            if tools.typeof(value) == "string" and value:sub(1, 1) == '[' and value:sub(-1) == ']' then
                 local openBrackets = select(2, value:gsub("%[", ""))
                 local closeBrackets = select(2, value:gsub("%]", ""))
                 local cleanValue = value:gsub("%[", ""):gsub("%]", "")
@@ -233,7 +156,7 @@ local function resolve_args(v, utils, allowSpecificReturns)
                 end
                 if cleanValue ~= "" then
                     local rSA = _local.resolveSpecificArgs(require("arguments"):indexArgHandler(cleanValue), utils)
-                    if _local.typeof(rSA) == "list" and rSA[1] == "_!!dDecodePSCFail!!_" then 
+                    if tools.typeof(rSA) == "list" and rSA[1] == "_!!dDecodePSCFail!!_" then 
                         return {false, "[sub-function]: " .. tostring(rSA[2])}
                     end
                     table.insert(currentTable, rSA)
@@ -252,14 +175,14 @@ local function resolve_args(v, utils, allowSpecificReturns)
     end
 
     if not allowSpecificReturns then
-        if _local.typeof(v) == "string" then
+        if tools.typeof(v) == "string" then
             if v == "_-!@!_-!-continue-skip-this-thing-rn!" or v == "_-!@!_-!-break-and-stop-rn!" then
                 v = nil
             end
         end
     end
 
-    if _local.typeof(v) == "string" then
+    if tools.typeof(v) == "string" then
         v = string.gsub(v, "_$#@¨COMMA_CHAR¨@#$_", '"')
     end
 
@@ -284,8 +207,6 @@ _local.resolveSpecificArgs = function(args, utils, allowSpecificReturns)
     return dec[2], ohgod
 end
 
-----------------------------------------
--- Tabela de Referências (runtime)
 local runtime = { _self = {} }
 
 runtime._self.runtime_size = function()
@@ -298,18 +219,18 @@ end
 
 runtime["var"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
-    if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
+    if tools.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
     end
-    if not args[1] or _local.typeof(args[1]) ~= "string" then
-        return false, "[var] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+    if not args[1] or tools.typeof(args[1]) ~= "string" then
+        return false, "[var] expected a string but received [1]: '" .. tools.typeof(args[1]) .. "'"
     end
 
-	local folderPath = script_dir .. temporary.paths.variables
+	local folderPath = tools.globals.dir .. tools.globals.temporary.paths.variables
     local filePath = folderPath .. "/" .. tostring(args[1])
 
     local content = "unknown?"
-    if _local.typeof(args[2]) == "list" then
+    if tools.typeof(args[2]) == "list" then
         content = json.encode(args[2])
     else
         content = tostring(args[2])
@@ -337,16 +258,16 @@ runtime["input"] = function(args, utils)
     io.write(tostring(args[1]) .. " ")
     answer = io.read()
 
-	local r = _local.stringToHex(answer)
+	local r = tools.stringToHex(answer)
 	return true, "_!str!_-" .. tostring(r)
 end
 runtime["pairs"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
-    if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
+    if tools.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
     end
-    if _local.typeof(args[1]) ~= "list" then
-        return false, "[pairs] expected a list but received [1]: '" .. _local.typeof(args[1]) .. "'"
+    if tools.typeof(args[1]) ~= "list" then
+        return false, "[pairs] expected a list but received [1]: '" .. tools.typeof(args[1]) .. "'"
     end
     local togo = {}
     for i, v in pairs(args[1]) do
@@ -357,11 +278,11 @@ end
 
 runtime["ipairs"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
-    if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
+    if tools.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
     end
-    if _local.typeof(args[1]) ~= "list" then
-        return false, "[ipairs] expected a list but received [1]: '" .. _local.typeof(args[1]) .. "'"
+    if tools.typeof(args[1]) ~= "list" then
+        return false, "[ipairs] expected a list but received [1]: '" .. tools.typeof(args[1]) .. "'"
     end
     local togo = {}
     for i, v in ipairs(args[1]) do
@@ -375,27 +296,25 @@ runtime["run"] = function(args, utils)
 end
 runtime["spawn"] = function(args, utils)
 	if not type(args[1]) then
-		return false, "[spawn] expected a any value but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[spawn] expected a any value but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 
     local co = coroutine.create(function()
 		require("src.core"):run(table.concat(args, " "), nil, true)
 	end)
     coroutine.resume(co)
-
-    print("done")
 	return true
 end
 runtime["get"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
-    if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
+    if tools.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
     end
-    if not args[1] or _local.typeof(args[1]) ~= "string" then
-        return false, "[get] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+    if not args[1] or tools.typeof(args[1]) ~= "string" then
+        return false, "[get] expected a string but received [1]: '" .. tools.typeof(args[1]) .. "'"
     end
 
-    local filePath = script_dir .. temporary.paths.variables .. "/" .. args[1]
+    local filePath = tools.globals.dir .. tools.globals.temporary.paths.variables .. "/" .. args[1]
     local togoV = fs.read(filePath)
 
     if not togoV then
@@ -406,12 +325,12 @@ end
 
 runtime["stdout"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
-    if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
+    if tools.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
     end
     for i, v in ipairs(args) do
         local go = "undefined"
-        local t = _local.typeof(v)
+        local t = tools.typeof(v)
         if t == "string" then
             if v == "_-!@!_-!-continue-skip-this-thing-rn!" or v == "_-!@!_-!-break-and-stop-rn!" then
                 go = ""
@@ -431,7 +350,7 @@ runtime["stdout"] = function(args, utils)
                     togo = togo .. "]"
                 else
                     for i, v in ipairs(t) do
-                        if _local.typeof(v) == "list" then
+                        if tools.typeof(v) == "list" then
                             if i == #t then
                                 togo = togo .. readTable(v) .. "]"
                             else
@@ -439,7 +358,7 @@ runtime["stdout"] = function(args, utils)
                             end
                         else
                             local valueConversion = function(rawValue)
-                                if _local.typeof(rawValue) == "string" then
+                                if tools.typeof(rawValue) == "string" then
                                     return '"' .. tostring(rawValue) .. '"'
                                 else
                                     return tostring(rawValue)
@@ -464,12 +383,12 @@ runtime["stdout"] = function(args, utils)
 end
 runtime["print"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
-    if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
+    if tools.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
     end
     for i, v in ipairs(args) do
         local go = "undefined"
-        local t = _local.typeof(v)
+        local t = tools.typeof(v)
         if t == "string" then
             if v == "_-!@!_-!-continue-skip-this-thing-rn!" or v == "_-!@!_-!-break-and-stop-rn!" then
                 go = ""
@@ -489,7 +408,7 @@ runtime["print"] = function(args, utils)
                     togo = togo .. "]"
                 else
                     for i, v in ipairs(t) do
-                        if _local.typeof(v) == "list" then
+                        if tools.typeof(v) == "list" then
                             if i == #t then
                                 togo = togo .. readTable(v) .. "]"
                             else
@@ -497,7 +416,7 @@ runtime["print"] = function(args, utils)
                             end
                         else
                             local valueConversion = function(rawValue)
-                                if _local.typeof(rawValue) == "string" then
+                                if tools.typeof(rawValue) == "string" then
                                     return '"' .. tostring(rawValue) .. '"'
                                 else
                                     return tostring(rawValue)
@@ -523,13 +442,13 @@ end
 
 runtime["println"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
-    if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
+    if tools.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
     end
     local toPrint = {}
     for i, v in ipairs(args) do
         local go = "undefined"
-        local t = _local.typeof(v)
+        local t = tools.typeof(v)
         if t == "string" then
             if v == "_-!@!_-!-continue-skip-this-thing-rn!" or v == "_-!@!_-!-break-and-stop-rn!" then
                 go = ""
@@ -545,7 +464,7 @@ runtime["println"] = function(args, utils)
                     togo = togo .. "]"
                 else
                     for i, v in ipairs(t) do
-                        if _local.typeof(v) == "list" then
+                        if tools.typeof(v) == "list" then
                             if i == #t then
                                 togo = togo .. readTable(v) .. "]"
                             else
@@ -553,7 +472,7 @@ runtime["println"] = function(args, utils)
                             end
                         else
                             local valueConversion = function(rawValue)
-                                if _local.typeof(rawValue) == "string" then
+                                if tools.typeof(rawValue) == "string" then
                                     return '"' .. tostring(rawValue) .. '"'
                                 else
                                     return tostring(rawValue)
@@ -585,12 +504,12 @@ end
 runtime["while"] = function(args, utils)
     local operatorRaW = args[1]
     local operator = _local.resolveSpecificArgs(operatorRaW, utils)
-    if _local.typeof(operator) == "list" and operator[1] == "_!!dDecodePSCFail!!_" then 
+    if tools.typeof(operator) == "list" and operator[1] == "_!!dDecodePSCFail!!_" then 
         return false, operator[2]
     end
     local commands = {}
     for i, v in pairs(args) do
-        if _local.typeof(v) == "string" then
+        if tools.typeof(v) == "string" then
             if v:sub(1, 1) == '(' and v:sub(-1) == ')' then
                 table.insert(commands, v)
             end
@@ -602,12 +521,12 @@ runtime["while"] = function(args, utils)
             if r[1] == false then 
                 return false, "[while] function error [" .. tostring(ic) .. "]: " .. r[2] 
             end
-            if r[2] and _local.typeof(r[2]) == "string" and string.sub(r[2], 1, 9) == "_-!@!_-!-" then
+            if r[2] and tools.typeof(r[2]) == "string" and string.sub(r[2], 1, 9) == "_-!@!_-!-" then
                 return true, returns or r[2]
             end
         end
     end
-    if _local.typeof(operator) == "boolean" then
+    if tools.typeof(operator) == "boolean" then
         while operator do
             local a, b = loopa()
             if a == false then
@@ -624,19 +543,19 @@ runtime["while"] = function(args, utils)
             operator = _local.resolveSpecificArgs(operatorRaW, utils)
         end
     else
-        return false, "[while] expected a bool but received [1]: '" .. _local.typeof(operator) .. "'"
+        return false, "[while] expected a bool but received [1]: '" .. tools.typeof(operator) .. "'"
     end
     return true
 end
 runtime["for"] = function(args, utils)
     local operator = _local.resolveSpecificArgs(table.remove(args, 1), utils)
-    if _local.typeof(operator) == "list" and operator[1] == "_!!dDecodePSCFail!!_" then 
+    if tools.typeof(operator) == "list" and operator[1] == "_!!dDecodePSCFail!!_" then 
         return false, operator[2] 
     end
     local loopArgs = {}
     local commands = {}
     for i, v in pairs(args) do
-        if _local.typeof(v) == "string" then
+        if tools.typeof(v) == "string" then
             if v:sub(1, 1) == '(' and v:sub(-1) == ')' then
                 table.insert(commands, v)
             else
@@ -649,19 +568,19 @@ runtime["for"] = function(args, utils)
             local translated_v, r = _local.resolveSpecificArgs(v, utils, true)
             c = c:gsub("{" .. (loopArgs[1] or "_index") .. "}", tostring(i))
             if type(translated_v) == "table" then
-                translated_v = _local.tableToString(translated_v)
+                translated_v = tools.tableToString(translated_v)
             end
             c = c:gsub("{" .. (loopArgs[2] or "_value") .. "}", tostring(translated_v))
             local r, returns = require("src.core"):run(c, nil, true)
             if r[1] == false then 
                 return false, "[for] function error [" .. tostring(ic) .. "]: " .. r[2] 
             end
-            if r[2] and _local.typeof(r[2]) == "string" and string.sub(r[2], 1, 9) == "_-!@!_-!-" then
+            if r[2] and tools.typeof(r[2]) == "string" and string.sub(r[2], 1, 9) == "_-!@!_-!-" then
                 return true, returns or r[2]
             end
         end
     end
-    if _local.typeof(operator) == "list" then
+    if tools.typeof(operator) == "list" then
         for index, value in ipairs(operator) do
             local a, b = loopa(index, value)
             if a ~= nil then
@@ -677,7 +596,7 @@ runtime["for"] = function(args, utils)
                 end
             end
         end
-    elseif _local.typeof(operator) == "number" then
+    elseif tools.typeof(operator) == "number" then
         for index = 1, operator do
             local a, b = loopa(index, "nil")
             if a ~= nil then
@@ -694,7 +613,7 @@ runtime["for"] = function(args, utils)
             end
         end
     else
-        return false, "[for] expected a number or a list but received [1]: '" .. _local.typeof(operator) .. "'"
+        return false, "[for] expected a number or a list but received [1]: '" .. tools.typeof(operator) .. "'"
     end
     return true
 end
@@ -713,7 +632,7 @@ runtime["function"] = function(rawArgs, utils)
 		end
 	end
 
-	local folderPath = script_dir .. temporary.paths.functions
+	local folderPath = tools.globals.dir .. tools.globals.temporary.paths.functions
 	local filePath = folderPath .. "/" .. tostring(func_name) .. ".json"
 
 	local data = {
@@ -737,7 +656,7 @@ runtime["if"] = function(args, utils)
     local true_commands = {}
     local false_commands = {}
     for i, v in pairs(args) do
-        if _local.typeof(v) == "string" then
+        if tools.typeof(v) == "string" then
             if v:sub(-1, -1) == ')' then
                 if not elseFound then
                     table.insert(true_commands, v)
@@ -753,7 +672,7 @@ runtime["if"] = function(args, utils)
     if a and tostring(a) == "true" then
         for i, v in ipairs(true_commands) do
             local r, ohno = _local.resolveSpecificArgs(v, utils, true)
-            if _local.typeof(r) == "list" and r[1] == "_!!dDecodePSCFail!!_" then 
+            if tools.typeof(r) == "list" and r[1] == "_!!dDecodePSCFail!!_" then 
                 return false, r[2] 
             end
             if r == "_-!@!_-!-continue-skip-this-thing-rn!" or r == "_-!@!_-!-break-and-stop-rn!" then
@@ -766,7 +685,7 @@ runtime["if"] = function(args, utils)
     else
         for i, v in ipairs(false_commands) do
             local r, ohno = _local.resolveSpecificArgs(v, utils, true)
-            if _local.typeof(r) == "list" and r[1] == "_!!dDecodePSCFail!!_" then 
+            if tools.typeof(r) == "list" and r[1] == "_!!dDecodePSCFail!!_" then 
                 return false, r[2] 
             end
             if r == "_-!@!_-!-continue-skip-this-thing-rn!" or r == "_-!@!_-!-break-and-stop-rn!" then
@@ -782,10 +701,10 @@ end
 
 runtime["type"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
-    if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
+    if tools.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
     end
-    local typeofit = _local.typeof(args[1])
+    local typeofit = tools.typeof(args[1])
     if typeofit == "list" then typeofit = "list" elseif typeofit == "nil" then typeofit = "nil" end
     return true, typeofit
 end
@@ -812,7 +731,7 @@ runtime["continue"] = function(args, utils)
 end
 runtime["return"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
-    if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
+    if tools.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
     end
     local togo = {"_-!@!_-!-return-and-stop-rn!"}
@@ -820,27 +739,30 @@ runtime["return"] = function(args, utils)
     return true, togo
 end
 runtime["return-if"] = function(args, utils)
-	args = _local.resolveArgs(args, utils)
-	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
+	--args = _local.resolveArgs(args, utils)
+	--if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
 	local func = table.remove(args, 1)
-	if type(func) ~= "boolean" then
-		return false, "[return-if] expected a boolean but received [1]: '" .. _local.typeof(func) .. "'"
+
+    local funcCompile = _local.resolveSpecificArgs(func, utils)
+    if type(funcCompile) == "table" and funcCompile[1] == "_!!dDecodePSCFail!!_" then  return false, funcCompile[2] end
+
+	if type(funcCompile) ~= "boolean" then
+		return false, "[return-if] expected a boolean but received [1]: '" .. tools.typeof(func) .. "'"
 	end
 
-	local togo = nil
-	if func == true then
-		togo = {"_-!@!_-!-return-and-stop-rn!"}
-		table.insert(togo, args[1])
-	end
+	if funcCompile == true then
+        local returnCompile = _local.resolveSpecificArgs(args[1], utils)
+        if type(returnCompile) == "table" and returnCompile[1] == "_!!dDecodePSCFail!!_" then  return false, returnCompile[2] end
 
-    --print(togo[2])
-	return true, togo
+	    return true, {"_-!@!_-!-return-and-stop-rn!", returnCompile}
+	end
+	return true, nil
 end
 runtime["not"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
-    if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
-        return false, args[2] 
+    if tools.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
+        return false, args[2]
     end
     return true, (not args[1])
 end
@@ -850,7 +772,7 @@ runtime["and"] = function(args, utils)
     local r = true
     for i, v in ipairs(args) do
         local argsReq = _local.resolveSpecificArgs(v, utils)
-        if _local.typeof(argsReq) == "list" and argsReq[1] == "_!!dDecodePSCFail!!_" then 
+        if tools.typeof(argsReq) == "list" and argsReq[1] == "_!!dDecodePSCFail!!_" then 
             return {false, args[2]} 
         end
         if argsReq == false then
@@ -866,7 +788,7 @@ runtime["or"] = function(args, utils)
     local r = false
     for i, v in ipairs(args) do
         local argsReq = _local.resolveSpecificArgs(v, utils)
-        if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
+        if tools.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
             return false, args[2] 
         end
         if argsReq == true then
@@ -879,7 +801,7 @@ end
 
 runtime["=="] = function(args, utils)
     args = _local.resolveArgs(args, utils)
-    if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
+    if tools.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
     end
     return true, (args[1] or nil) == (args[2] or nil)
@@ -887,7 +809,7 @@ end
 
 runtime["!="] = function(args, utils)
     args = _local.resolveArgs(args, utils)
-    if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
+    if tools.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
     end
     return true, (args[1] or "_ITSNIL!!!!!!!!!") ~= (args[2] or "_ITSNIL!!!!!!!!!")
@@ -895,10 +817,10 @@ end
 
 runtime["nil?"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
-    if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
+    if tools.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
     end
-    if _local.typeof(args[1]) == nil or args[1] == nil or not args[1] then
+    if tools.typeof(args[1]) == nil or args[1] == nil or not args[1] then
         return true, true
     else
         return true, false
@@ -907,80 +829,80 @@ end
 
 runtime[">"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
-    if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
+    if tools.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
     end
-    if _local.typeof(args[1]) ~= "number" then
-        return false, "[>] expected a number but received [1]: '" .. _local.typeof(args[1]) .. "'"
+    if tools.typeof(args[1]) ~= "number" then
+        return false, "[>] expected a number but received [1]: '" .. tools.typeof(args[1]) .. "'"
     end
-    if _local.typeof(args[2]) ~= "number" then
-        return false, "[>] expected a number but received [2]: '" .. _local.typeof(args[2]) .. "'"
+    if tools.typeof(args[2]) ~= "number" then
+        return false, "[>] expected a number but received [2]: '" .. tools.typeof(args[2]) .. "'"
     end
     local ok, r = pcall(function()
         return tonumber(args[1]) > tonumber(args[2])
     end)
     if not ok then 
-        return false, "error in try compare: " .. _local.typeof(args[1]) .. " > " .. _local.typeof(args[2])
+        return false, "error in try compare: " .. tools.typeof(args[1]) .. " > " .. tools.typeof(args[2])
     end
     return true, r
 end
 
 runtime["<"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
-    if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
+    if tools.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
     end
-    if _local.typeof(args[1]) ~= "number" then
-        return false, "[<] expected a number but received [1]: '" .. _local.typeof(args[1]) .. "'"
+    if tools.typeof(args[1]) ~= "number" then
+        return false, "[<] expected a number but received [1]: '" .. tools.typeof(args[1]) .. "'"
     end
-    if _local.typeof(args[2]) ~= "number" then
-        return false, "[<] expected a number but received [2]: '" .. _local.typeof(args[2]) .. "'"
+    if tools.typeof(args[2]) ~= "number" then
+        return false, "[<] expected a number but received [2]: '" .. tools.typeof(args[2]) .. "'"
     end
     local ok, r = pcall(function()
         return tonumber(args[1]) < tonumber(args[2])
     end)
     if not ok then 
-        return false, "error in try compare: " .. _local.typeof(args[1]) .. " < " .. _local.typeof(args[2])
+        return false, "error in try compare: " .. tools.typeof(args[1]) .. " < " .. tools.typeof(args[2])
     end
     return true, r
 end
 
 runtime[">="] = function(args, utils)
     args = _local.resolveArgs(args, utils)
-    if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
+    if tools.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
     end
-    if _local.typeof(args[1]) ~= "number" then
-        return false, "[>=] expected a number but received [1]: '" .. _local.typeof(args[1]) .. "'"
+    if tools.typeof(args[1]) ~= "number" then
+        return false, "[>=] expected a number but received [1]: '" .. tools.typeof(args[1]) .. "'"
     end
-    if _local.typeof(args[2]) ~= "number" then
-        return false, "[>=] expected a number but received [2]: '" .. _local.typeof(args[2]) .. "'"
+    if tools.typeof(args[2]) ~= "number" then
+        return false, "[>=] expected a number but received [2]: '" .. tools.typeof(args[2]) .. "'"
     end
     local ok, r = pcall(function()
         return tonumber(args[1]) >= tonumber(args[2])
     end)
     if not ok then 
-        return false, "error in try compare: " .. _local.typeof(args[1]) .. " >= " .. _local.typeof(args[2])
+        return false, "error in try compare: " .. tools.typeof(args[1]) .. " >= " .. tools.typeof(args[2])
     end
     return true, r
 end
 
 runtime["<="] = function(args, utils)
     args = _local.resolveArgs(args, utils)
-    if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
+    if tools.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
     end
-    if _local.typeof(args[1]) ~= "number" then
-        return false, "[<=] expected a number but received [1]: '" .. _local.typeof(args[1]) .. "'"
+    if tools.typeof(args[1]) ~= "number" then
+        return false, "[<=] expected a number but received [1]: '" .. tools.typeof(args[1]) .. "'"
     end
-    if _local.typeof(args[2]) ~= "number" then
-        return false, "[<=] expected a number but received [2]: '" .. _local.typeof(args[2]) .. "'"
+    if tools.typeof(args[2]) ~= "number" then
+        return false, "[<=] expected a number but received [2]: '" .. tools.typeof(args[2]) .. "'"
     end
     local ok, r = pcall(function()
         return tonumber(args[1]) <= tonumber(args[2])
     end)
     if not ok then 
-        return false, "error in try compare: " .. _local.typeof(args[1]) .. " <= " .. _local.typeof(args[2])
+        return false, "error in try compare: " .. tools.typeof(args[1]) .. " <= " .. tools.typeof(args[2])
     end
     return true, r
 end
@@ -988,21 +910,21 @@ runtime["str"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
-	local toGo = _local.concat(args, " ")
+	local toGo = tools.concat(args, " ")
 	if toGo:sub(1, 1) == '"' and toGo:sub(-1) == '"' then
 		toGo = toGo:sub(2, -2)
 	end
 
-	local hex = _local.stringToHex(toGo)
+	local hex = tools.stringToHex(toGo)
 	return true, "_!str!_-" .. tostring(hex)
 end
 runtime["str!"] = function(args, utils)
-	local toGo = _local.concat(args, " ")
+	local toGo = tools.concat(args, " ")
 	if toGo:sub(1, 1) == '"' and toGo:sub(-1) == '"' then
 		toGo = toGo:sub(2, -2)
 	end
 
-	local hex = _local.stringToHex(toGo)
+	local hex = tools.stringToHex(toGo)
 	return true, "_!str!_-" .. tostring(hex)
 end
 runtime["color"] = function(args, utils)
@@ -1037,10 +959,10 @@ runtime["color"] = function(args, utils)
 	args[2] = tostring(args[2])
 
 	if type(args[1]) ~= "string" then
-		return false, "[color] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[color] expected a string but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 	if type(args[2]) ~= "string" then
-		return false, "[color] expected a string but received [2]: '" .. _local.typeof(args[2]) .. "'"
+		return false, "[color] expected a string but received [2]: '" .. tools.typeof(args[2]) .. "'"
 	end
 
 	-- Look up the color code using the lowercased color name
@@ -1065,45 +987,45 @@ runtime["color"] = function(args, utils)
 	end
 
 	-- Convert the formatted string to a hexadecimal representation and return it prefixed with _!str!_-
-	local hex = _local.stringToHex(formatted)
+	local hex = tools.stringToHex(formatted)
 	return true, "_!str!_-" .. tostring(hex)
 end
 runtime["format"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
-    if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
+    if tools.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
     end
     args[1] = tostring(args[1])
-    if _local.typeof(args[1]) ~= "string" then
-        return false, "[format] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+    if tools.typeof(args[1]) ~= "string" then
+        return false, "[format] expected a string but received [1]: '" .. tools.typeof(args[1]) .. "'"
     end
     local arg1 = tostring(table.remove(args, 1))
     for i, v in ipairs(args) do
         arg1 = arg1:gsub("{" .. tostring(i) .. "}", tostring(v))
     end
-    local hex = _local.stringToHex(arg1)
+    local hex = tools.stringToHex(arg1)
     return true, "_!str!_-" .. tostring(hex)
 end
 runtime["split"] = function(args, utils)
-	args = _local.resolveArgs(args, utils)
-	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
-	args[1] = tostring(args[1])
+    args = _local.resolveArgs(args, utils)
+    if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
+    args[1] = tostring(args[1])
 
-	if type(args[1]) ~= "string" then
-		return false, "[split] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
-	end
+    if type(args[1]) ~= "string" then
+        return false, "[split] expected a string but received [1]: '" .. tools.typeof(args[1]) .. "'"
+    end
 
-	local list = string.split(args[1], tostring(args[2] or " "))
-	return true, _local.tableToString(list)
+    local list = utilsModule.split(args[1], tostring(args[2] or " "))
+    return true, tools.tableToString(list)
 end
 runtime["replace"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
-    if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
+    if tools.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
     end
     args[1] = tostring(args[1])
-    if _local.typeof(args[1]) ~= "string" then
-        return false, "[replace] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+    if tools.typeof(args[1]) ~= "string" then
+        return false, "[replace] expected a string but received [1]: '" .. tools.typeof(args[1]) .. "'"
     end
     return true, string.gsub(tostring(args[1]), tostring(args[2]), tostring(args[3]))
 end
@@ -1112,19 +1034,19 @@ runtime["len"] = function(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
 	if type(args[1]) ~= "string" and type(args[1]) ~= "table" then
-		return false, "[len] expected a string or a list but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[len] expected a string or a list but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 	return true, #args[1]
 end
 runtime["reverse"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
-    if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
+    if tools.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
     end
-    if _local.typeof(args[1]) ~= "string" and _local.typeof(args[1]) ~= "list" then
-        return false, "[reverse] expected a list or a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+    if tools.typeof(args[1]) ~= "string" and tools.typeof(args[1]) ~= "list" then
+        return false, "[reverse] expected a list or a string but received [1]: '" .. tools.typeof(args[1]) .. "'"
     end
-    if _local.typeof(args[1]) == "list" then
+    if tools.typeof(args[1]) == "list" then
         local newTable = {}
         for i, v in ipairs(args[1]) do
             local value = args[1][math.abs((i - 1) - #args[1])]
@@ -1138,38 +1060,38 @@ end
 
 runtime["upper"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
-    if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
+    if tools.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
     end
     args[1] = tostring(args[1])
-    if _local.typeof(args[1]) ~= "string" then
-        return false, "[upper] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+    if tools.typeof(args[1]) ~= "string" then
+        return false, "[upper] expected a string but received [1]: '" .. tools.typeof(args[1]) .. "'"
     end
     return true, string.upper(tostring(args[1]))
 end
 
 runtime["lower"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
-    if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
+    if tools.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
     end
     args[1] = tostring(args[1])
-    if _local.typeof(args[1]) ~= "string" then
-        return false, "[lower] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+    if tools.typeof(args[1]) ~= "string" then
+        return false, "[lower] expected a string but received [1]: '" .. tools.typeof(args[1]) .. "'"
     end
     return true, string.lower(tostring(args[1]))
 end
 
 runtime["upper?"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
-    if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
+    if tools.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
     end
     args[1] = tostring(args[1])
     local found = false
     local alphabet = {"a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"}
-    if _local.typeof(args[1]) ~= "string" then
-        return false, "[upper?] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+    if tools.typeof(args[1]) ~= "string" then
+        return false, "[upper?] expected a string but received [1]: '" .. tools.typeof(args[1]) .. "'"
     end
     local function splitWords(str)
         local words = {}
@@ -1193,7 +1115,7 @@ runtime["ord"] = function(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
 	if type(args[1]) ~= "string" then
-		return false, "[starts] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[starts] expected a string but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 
 	return true, string.byte(args[1])
@@ -1203,7 +1125,7 @@ runtime["chr"] = function(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
 	if type(args[1]) ~= "number" then
-		return false, "[chr] expected a number but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[chr] expected a number but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 
     if args[1] > 255 then
@@ -1215,14 +1137,14 @@ runtime["chr"] = function(args, utils)
 end
 runtime["lower?"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
-    if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
+    if tools.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
     end
     args[1] = tostring(args[1])
     local found = false
     local alphabet = {"a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"}
-    if _local.typeof(args[1]) ~= "string" then
-        return false, "[lower?] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+    if tools.typeof(args[1]) ~= "string" then
+        return false, "[lower?] expected a string but received [1]: '" .. tools.typeof(args[1]) .. "'"
     end
     local function splitWords(str)
         local words = {}
@@ -1247,10 +1169,10 @@ runtime["at"] = function(args, utils)
 	local list = table.remove(args, 1)
 
 	if type(list) ~= "table" then
-		return false, "[at] expected a list but received [1]: '" .. _local.typeof(list) .. "'"
+		return false, "[at] expected a list but received [1]: '" .. tools.typeof(list) .. "'"
 	end
 	if type(args[1]) ~= "number" then
-		return false, "[at] expected a number but received [2]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[at] expected a number but received [2]: '" .. tools.typeof(args[1]) .. "'"
 	end
 
 	local success, args = pcall(function()
@@ -1269,7 +1191,7 @@ runtime["pop"] = function(args, utils)
 	local list = table.remove(args, 1)
 
 	if type(list) ~= "table" then
-		return false, "[at] expected a list but received [1]: '" .. _local.typeof(list) .. "'"
+		return false, "[at] expected a list but received [1]: '" .. tools.typeof(list) .. "'"
 	end
 
 	local success, args = pcall(function()
@@ -1280,7 +1202,7 @@ runtime["pop"] = function(args, utils)
 		args = nil
 	end
 
-	return true, _local.tableToString(args)
+	return true, tools.tableToString(args)
 end
 runtime["set"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
@@ -1288,11 +1210,11 @@ runtime["set"] = function(args, utils)
 	local list = table.remove(args, 1)
 
 	if type(list) ~= "table" then
-		return false, "[set] expected a list but received [1]: '" .. _local.typeof(list) .. "'"
+		return false, "[set] expected a list but received [1]: '" .. tools.typeof(list) .. "'"
 	end
     
 	if type(args[1]) ~= "number" then
-		return false, "[at] expected a number but received [2]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[at] expected a number but received [2]: '" .. tools.typeof(args[1]) .. "'"
 	end
     
 	--[[if not args[2] then
@@ -1310,7 +1232,7 @@ runtime["set"] = function(args, utils)
 		return true
 	end)
 
-	return true, _local.tableToString(list)
+	return true, tools.tableToString(list)
 end
 runtime["append"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
@@ -1318,14 +1240,14 @@ runtime["append"] = function(args, utils)
 	local list = table.remove(args, 1)
 
 	if type(list) ~= "table" then
-		return false, "[append] expected a list but received [1]: '" .. _local.typeof(list) .. "'"
+		return false, "[append] expected a list but received [1]: '" .. tools.typeof(list) .. "'"
 	end
 
 	for i, v in args do
 		table.insert(list, v)
 	end
 
-	local a = _local.tableToString(list)
+	local a = tools.tableToString(list)
 
 	return true, a
 end
@@ -1335,11 +1257,11 @@ runtime["push"] = function(args, utils)
 	local list = table.remove(args, 1)
 
 	if type(list) ~= "table" then
-		return false, "[push] expected a list but received [1]: '" .. _local.typeof(list) .. "'"
+		return false, "[push] expected a list but received [1]: '" .. tools.typeof(list) .. "'"
 	end
 
     if not args[1] then
-		return false, "[push] expected a any value but received [2]: '" .. _local.typeof(list) .. "'"
+		return false, "[push] expected a any value but received [2]: '" .. tools.typeof(list) .. "'"
     end
 
 	local success, r = pcall(function()
@@ -1358,7 +1280,7 @@ runtime["listrem"] = function(args, utils)
 	local list = table.remove(args, 1)
 
 	if type(list) ~= "table" then
-		return false, "[listrem] expected a list but received [1]: '" .. _local.typeof(list) .. "'"
+		return false, "[listrem] expected a list but received [1]: '" .. tools.typeof(list) .. "'"
 	end
 
 	for i, v in args do
@@ -1372,14 +1294,14 @@ runtime["listrem"] = function(args, utils)
 		table.remove(list, n)
 	end
 
-	return true, _local.tableToString(list)
+	return true, tools.tableToString(list)
 end
 runtime["join"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
 	if type(args[1]) ~= "table" then
-		return false, "[join] expected a list but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[join] expected a list but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 
 	local join = table.concat(args[1], tostring(args[2] or " "))
@@ -1391,10 +1313,10 @@ runtime["starts?"] = function(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
 	if type(args[1]) ~= "string" then
-		return false, "[starts] expected a list but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[starts] expected a list but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 	if type(args[2]) ~= "string" then
-		return false, "[starts] expected a list but received [2]: '" .. _local.typeof(args[2]) .. "'"
+		return false, "[starts] expected a list but received [2]: '" .. tools.typeof(args[2]) .. "'"
 	end
 
 	-- args[1]: the string which I want to check if it starts with something.
@@ -1406,10 +1328,10 @@ runtime["ends?"] = function(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
 	if type(args[1]) ~= "string" then
-		return false, "[ends] expected a list but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[ends] expected a list but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 	if type(args[2]) ~= "string" then
-		return false, "[ends] expected a list but received [2]: '" .. _local.typeof(args[2]) .. "'"
+		return false, "[ends] expected a list but received [2]: '" .. tools.typeof(args[2]) .. "'"
 	end
 
 	return true, (string.sub(args[1], -#args[2], -1) == args[2])
@@ -1419,10 +1341,10 @@ runtime["skip"] = function(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
 	if type(args[1]) ~= "string" then
-		return false, "[skip] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[skip] expected a string but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 	if type(args[2]) ~= "number" then
-		return false, "[skip] expected a number but received [2]: '" .. _local.typeof(args[2]) .. "'"
+		return false, "[skip] expected a number but received [2]: '" .. tools.typeof(args[2]) .. "'"
 	end
 
 	return true, string.sub(args[1], args[2])
@@ -1432,14 +1354,14 @@ runtime["crop"] = function(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
 	if type(args[1]) ~= "string" and type(args[1]) ~= "table" then
-		return false, "[crop] expected a string or list but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[crop] expected a string or list but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 	if type(args[2]) ~= "number" then
-		return false, "[crop] expected a number but received [2]: '" .. _local.typeof(args[2]) .. "'"
+		return false, "[crop] expected a number but received [2]: '" .. tools.typeof(args[2]) .. "'"
 	end
 
 	if args[3] and type(args[3]) ~= "number" then
-		return false, "[crop] expected a number but received [3]: '" .. _local.typeof(args[3]) .. "'"
+		return false, "[crop] expected a number but received [3]: '" .. tools.typeof(args[3]) .. "'"
 	end
 
     if type(args[1]) == "string" then
@@ -1462,10 +1384,10 @@ runtime["first"] = function(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
 	if type(args[1]) ~= "string" and type(args[1]) ~= "table"  then
-		return false, "[first] expected a string or list but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[first] expected a string or list but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 	--[[if type(args[2]) ~= "number" or args[2] < 0 then
-		return false, "[first] expected a positive number but received [2]: '" .. _local.typeof(args[2]) .. "'"
+		return false, "[first] expected a positive number but received [2]: '" .. tools.typeof(args[2]) .. "'"
 	end]]
 
     if type(args[1]) == "string" then
@@ -1488,10 +1410,10 @@ runtime["last"] = function(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
 	if type(args[1]) ~= "string" and type(args[1]) ~= "table" then
-		return false, "[last] expected a string or list but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[last] expected a string or list but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 	--[[if type(args[2]) ~= "number" or args[2] < 0 then
-		return false, "[last] expected a positive number but received [2]: '" .. _local.typeof(args[2]) .. "'"
+		return false, "[last] expected a positive number but received [2]: '" .. tools.typeof(args[2]) .. "'"
 	end]]
 
     if type(args[1]) == "string" then
@@ -1514,18 +1436,18 @@ runtime["find"] = function(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
 	if type(args[1]) ~= "string" and type(args[1]) ~= "table" then
-		return false, "[find] expected a string or a list but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[find] expected a string or a list but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 
 	if type(args[1]) == "string" then
 		if type(args[2]) ~= "string" then
-			return false, "[find] expected a string but received [2]: '" .. _local.typeof(args[2]) .. "'"
+			return false, "[find] expected a string but received [2]: '" .. tools.typeof(args[2]) .. "'"
 		end
 
 		return true, string.find(args[1], args[2]) ~= nil
 	else
 		if type(args[1]) ~= "string" and type(args[1]) ~= "number" then
-			return false, "[find] expected a string or a list or a number but received [1]: '" .. _local.typeof(args[1]) .. "'"
+			return false, "[find] expected a string or a list or a number but received [1]: '" .. tools.typeof(args[1]) .. "'"
 		end
 
 		return true, table.find(args[1], args[2]) ~= nil
@@ -1536,10 +1458,10 @@ runtime["sort"] = function(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
 	if type(args[1]) ~= "table" then
-		return false, "[sort] expected a list but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[sort] expected a list but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 	if type(args[2]) ~= "string" then
-		return false, "[sort] expected a function name as a string but received [2]: '" .. _local.typeof(args[2]) .. "'"
+		return false, "[sort] expected a function name as a string but received [2]: '" .. tools.typeof(args[2]) .. "'"
 	end
 
 	local toSortList = args[1]
@@ -1553,10 +1475,10 @@ runtime["sort"] = function(args, utils)
 			local v2 = toSortList[j]
 
 			if type(v1) == "table" then
-				v1 = _local.tableToString(v1)
+				v1 = tools.tableToString(v1)
 			end
 			if type(v2) == "table" then
-				v2 = _local.tableToString(v2)
+				v2 = tools.tableToString(v2)
 			end
 			local returns = require("src.core"):run("(" ..  args[2] .. " " .. v1 .. " " .. v2 .. ")", nil, true)
 
@@ -1564,7 +1486,7 @@ runtime["sort"] = function(args, utils)
 				return false, "[sort] [2] function: "  .. (returns[2] or "")
 			end
 			if type(returns[2]) ~= "boolean" then
-				local addition = _local.typeof(returns[2])
+				local addition = tools.typeof(returns[2])
 
 				if type(returns[2]) == "string" then
 					addition = returns[2]
@@ -1592,7 +1514,7 @@ runtime["empty?"] = function(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
 	if type(args[1]) ~= "table" and type(args[1]) ~= "string" then
-		return false, "[empty] expected a list or a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[empty] expected a list or a string but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 
 	return true, (#args[1] == 0)
@@ -1602,7 +1524,7 @@ runtime["range"] = function(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
 	if type(args[1]) ~= "number" then
-		return false, "[range] expected a number but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[range] expected a number but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 
 	local list = {}
@@ -1610,14 +1532,14 @@ runtime["range"] = function(args, utils)
 		table.insert(list, index)
 	end
 
-	return true, _local.tableToString(list)
+	return true, tools.tableToString(list)
 end
 runtime["rpick"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
 	if type(args[1]) ~= "table" and type(args[1]) ~= "string" then
-		return false, "[rpick] expected a list or a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[rpick] expected a list or a string but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 
 	local main = args[1]
@@ -1626,7 +1548,7 @@ runtime["rpick"] = function(args, utils)
 		local pick = main[math.random(1, #main)]
 
 		if type(pick) == "table" then
-			r = _local.tableToString(pick)
+			r = tools.tableToString(pick)
 		else
 			r = pick
 		end
@@ -1646,18 +1568,18 @@ runtime["list"] = function(args, utils)
 		table.insert(list, v)
 	end
 
-	return true, _local.tableToString(list)
+	return true, tools.tableToString(list)
 end
 runtime["listclr"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
 	if type(args[1]) ~= "table" then
-		return false, "[listclr] expected a list but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[listclr] expected a list but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 
 	args[1] = {}
-	return true, _local.tableToString(args[1])
+	return true, tools.tableToString(args[1])
 end
 
 -- here to do the FS
@@ -1666,7 +1588,7 @@ runtime["fdexists?"] = function(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
 	if type(args[1]) ~= "string" then
-		return false, "[fdexists?] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[fdexists?] expected a string but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 
 	return true, fs.isfile(args[1]) or fs.isdir(args[1])
@@ -1676,7 +1598,7 @@ runtime["file?"] = function(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
 	if type(args[1]) ~= "string" then
-		return false, "[file?] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[file?] expected a string but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 
 	return true, fs.isfile(args[1])
@@ -1686,7 +1608,7 @@ runtime["dir?"] = function(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
 	if type(args[1]) ~= "string" then
-		return false, "[dir?] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[dir?] expected a string but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 
 	return true, fs.isdir(args[1])
@@ -1696,7 +1618,7 @@ runtime["attr"] = function(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
 	if type(args[1]) ~= "string" then
-		return false, "[attr] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[attr] expected a string but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 
     local found = fs.check(args[1])
@@ -1719,11 +1641,11 @@ runtime["rename"] = function(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
 	if type(args[1]) ~= "string" then
-		return false, "[rename] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[rename] expected a string but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 
 	if type(args[2]) ~= "string" then
-		return false, "[rename] expected a string but received [2]: '" .. _local.typeof(args[2]) .. "'"
+		return false, "[rename] expected a string but received [2]: '" .. tools.typeof(args[2]) .. "'"
 	end
 
     local found = fs.check(args[1])
@@ -1746,7 +1668,7 @@ runtime["edit"] = function(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
 	if type(args[1]) ~= "string" then
-		return false, "[edit] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[edit] expected a string but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 
     local found = fs.isfile(args[1])
@@ -1764,7 +1686,7 @@ runtime["mkfile"] = function(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
 	if type(args[1]) ~= "string" then
-		return false, "[mkfile] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[mkfile] expected a string but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 
     local found = fs.check(args[1])
@@ -1782,7 +1704,7 @@ runtime["mkdir"] = function(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
 	if type(args[1]) ~= "string" then
-		return false, "[mkdir] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[mkdir] expected a string but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 
     local found = fs.check(args[1])
@@ -1800,7 +1722,7 @@ runtime["read"] = function(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
 	if type(args[1]) ~= "string" then
-		return false, "[read] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[read] expected a string but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 
     local found = fs.isfile(args[1])
@@ -1818,7 +1740,7 @@ runtime["dir"] = function(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
 	if type(args[1]) ~= "string" then
-		return false, "[dir] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[dir] expected a string but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 
     local found = fs.isdir(args[1])
@@ -1836,7 +1758,7 @@ runtime["delete"] = function(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
 	if type(args[1]) ~= "string" then
-		return false, "[delete] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[delete] expected a string but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 
     local found = fs.check(args[1])
@@ -1852,12 +1774,12 @@ end
 
 runtime["alphabet"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
-    if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
+    if tools.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
     end
     local alphabet = {"a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"}
-    if args[1] and _local.typeof(args[1]) ~= "number" then
-        return false, "[alphabet] expected a number but received [1]: '" .. _local.typeof(args[1]) .. "'"
+    if args[1] and tools.typeof(args[1]) ~= "number" then
+        return false, "[alphabet] expected a number but received [1]: '" .. tools.typeof(args[1]) .. "'"
     end
 
     local alphass = {}
@@ -1873,14 +1795,14 @@ runtime["alphabet"] = function(args, utils)
     for i = 1, times do
         table.insert(alphass, alphabet[i])
     end
-    return true, _local.tableToString(alphass)
+    return true, tools.tableToString(alphass)
 end
 runtime["require"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
 	if type(args[1]) ~= "string" then
-		return false, "[require] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[require] expected a string but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 
     local arg2RealInput = args[2]
@@ -1888,10 +1810,10 @@ runtime["require"] = function(args, utils)
         arg2RealInput = nil
 		args[3] = args[2]
 	elseif args[2] and type(args[2]) ~= "table" then
-		return false, "[require] expected a list but received [2]: '" .. _local.typeof(args[2]) .. "'"
+		return false, "[require] expected a list but received [2]: '" .. tools.typeof(args[2]) .. "'"
 	end
 	if args[3] and type(args[3]) ~= "boolean" then
-		return false, "[require] expected a boolean but received [3]: '" .. _local.typeof(args[3]) .. "'"
+		return false, "[require] expected a boolean but received [3]: '" .. tools.typeof(args[3]) .. "'"
 	end
 
     if (string.lower(string.sub(tostring(args[1]), -3, -1)) ~= ".ct") then
@@ -1926,15 +1848,15 @@ runtime["clock"] = function(args, utils)
 end
 runtime["delay"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
-    if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
+    if tools.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
     end
-    if _local.typeof(args[1]) ~= "number" then
-        return false, "[delay] expected a number but received [1]: '" .. _local.typeof(args[1]) .. "'"
+    if tools.typeof(args[1]) ~= "number" then
+        return false, "[delay] expected a number but received [1]: '" .. tools.typeof(args[1]) .. "'"
     end
     local number = tonumber(args[1])
     if number ~= nil then
-        _local.wait(number)
+        tools.wait(number)
     end
     return true
 end
@@ -1949,14 +1871,14 @@ runtime["max"] = function(args, utils)
 		if type(v) == "table" then
 			for _i, _v in pairs(v) do
 				if type(_v) ~= "number" then
-					return false, "[max] expected a number but received [" .. tostring(i) .. "][" .. tostring(_i) .. "]: '" .. _local.typeof(_v) .. "'"
+					return false, "[max] expected a number but received [" .. tostring(i) .. "][" .. tostring(_i) .. "]: '" .. tools.typeof(_v) .. "'"
 				end
 				table.insert(all_numbers, _v)
 			end
 		elseif type(v) == "number" then
 			table.insert(all_numbers, v)
 		else
-			return false, "[max] expected a number or a list but received [" .. tostring(i) .. "]: '" .. _local.typeof(v) .. "'"
+			return false, "[max] expected a number or a list but received [" .. tostring(i) .. "]: '" .. tools.typeof(v) .. "'"
 		end
 	end
 
@@ -1979,14 +1901,14 @@ runtime["min"] = function(args, utils)
 		if type(v) == "table" then
 			for _i, _v in pairs(v) do
 				if type(_v) ~= "number" then
-					return false, "[min] expected a number but received [" .. tostring(i) .. "][" .. tostring(_i) .. "]:'" .. _local.typeof(_v) .. "'"
+					return false, "[min] expected a number but received [" .. tostring(i) .. "][" .. tostring(_i) .. "]:'" .. tools.typeof(_v) .. "'"
 				end
 				table.insert(all_numbers, _v)
 			end
 		elseif type(v) == "number" then
 			table.insert(all_numbers, v)
 		else
-			return false, "[min] expected a number or a list but received [" .. tostring(i) .. "]: '" .. _local.typeof(v) .. "'"
+			return false, "[min] expected a number or a list but received [" .. tostring(i) .. "]: '" .. tools.typeof(v) .. "'"
 		end
 	end
 
@@ -2003,24 +1925,24 @@ runtime["neg"] = function(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
 	if type(args[1]) ~= "number" then
-		return false, "[neg] expected a number but received [1]:'" .. _local.typeof(args[1]) .. "'"
+		return false, "[neg] expected a number but received [1]:'" .. tools.typeof(args[1]) .. "'"
 	end
 
 	return true, -args[1]
 end
 runtime["+"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
-    if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
+    if tools.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
     end
-    if _local.typeof(args[1]) ~= "number" then
-        return false, "[+] expected a number but received [1]: '" .. _local.typeof(args[1]) .. "'"
+    if tools.typeof(args[1]) ~= "number" then
+        return false, "[+] expected a number but received [1]: '" .. tools.typeof(args[1]) .. "'"
     end
     local r = 0
     local ok, msg = pcall(function()
         for i, v in pairs(args) do
-            if _local.typeof(v) ~= "number" then
-                return false, "expected a number but received [" .. tostring(i) .. "]:'" .. _local.typeof(v) .. "'"
+            if tools.typeof(v) ~= "number" then
+                return false, "expected a number but received [" .. tostring(i) .. "]:'" .. tools.typeof(v) .. "'"
             end
             r = r + tonumber(v)
         end
@@ -2032,17 +1954,17 @@ end
 
 runtime["-"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
-    if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
+    if tools.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
     end
     local r = table.remove(args, 1)
-    if _local.typeof(r) ~= "number" then
-        return false, "[-] expected a number but received [1]: '" .. _local.typeof(r) .. "'"
+    if tools.typeof(r) ~= "number" then
+        return false, "[-] expected a number but received [1]: '" .. tools.typeof(r) .. "'"
     end
     local ok, msg = pcall(function()
         for i, v in pairs(args) do
-            if _local.typeof(v) ~= "number" then
-                return false, "[-] expected a number but received [" .. tostring(i) .. "]:'" .. _local.typeof(v) .. "'"
+            if tools.typeof(v) ~= "number" then
+                return false, "[-] expected a number but received [" .. tostring(i) .. "]:'" .. tools.typeof(v) .. "'"
             end
             r = r - tonumber(v)
         end
@@ -2054,17 +1976,17 @@ end
 
 runtime["*"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
-    if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
+    if tools.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
     end
     local r = table.remove(args, 1)
-    if _local.typeof(r) ~= "number" then
-        return false, "[*] expected a number but received [1]: '" .. _local.typeof(r) .. "'"
+    if tools.typeof(r) ~= "number" then
+        return false, "[*] expected a number but received [1]: '" .. tools.typeof(r) .. "'"
     end
     local ok, msg = pcall(function()
         for i, v in pairs(args) do
-            if _local.typeof(v) ~= "number" then
-                return false, "[*] expected a number but received [" .. tostring(i) .. "]:'" .. _local.typeof(v) .. "'"
+            if tools.typeof(v) ~= "number" then
+                return false, "[*] expected a number but received [" .. tostring(i) .. "]:'" .. tools.typeof(v) .. "'"
             end
             r = r * tonumber(v)
         end
@@ -2076,14 +1998,14 @@ end
 
 runtime["^"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
-    if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
+    if tools.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
     end
-    if _local.typeof(args[1]) ~= "number" then
-        return false, "[^] expected a number but received [1]: '" .. _local.typeof(args[1]) .. "'"
+    if tools.typeof(args[1]) ~= "number" then
+        return false, "[^] expected a number but received [1]: '" .. tools.typeof(args[1]) .. "'"
     end
-    if _local.typeof(args[2]) ~= "number" then
-        return false, "[^] expected a number but received [2]: '" .. _local.typeof(args[2]) .. "'"
+    if tools.typeof(args[2]) ~= "number" then
+        return false, "[^] expected a number but received [2]: '" .. tools.typeof(args[2]) .. "'"
     end
     local ok, result, msg = pcall(function()
         return args[1] ^ args[2]
@@ -2094,11 +2016,11 @@ end
 
 runtime["**"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
-    if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
+    if tools.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
     end
-    if _local.typeof(args[1]) ~= "number" then
-        return false, "[**] expected a number but received [1]: '" .. _local.typeof(args[1]) .. "'"
+    if tools.typeof(args[1]) ~= "number" then
+        return false, "[**] expected a number but received [1]: '" .. tools.typeof(args[1]) .. "'"
     end
     local ok, result, msg = pcall(function()
         return args[1] ^ 2
@@ -2109,11 +2031,11 @@ end
 
 runtime["***"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
-    if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
+    if tools.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
     end
-    if _local.typeof(args[1]) ~= "number" then
-        return false, "[***] expected a number but received [1]: '" .. _local.typeof(args[1]) .. "'"
+    if tools.typeof(args[1]) ~= "number" then
+        return false, "[***] expected a number but received [1]: '" .. tools.typeof(args[1]) .. "'"
     end
     local ok, result, msg = pcall(function()
         return args[1] ^ 3
@@ -2124,14 +2046,14 @@ end
 
 runtime["/"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
-    if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
+    if tools.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
     end
-    if _local.typeof(args[1]) ~= "number" then
-        return false, "[/] expected a number but received [1]: '" .. _local.typeof(args[1]) .. "'"
+    if tools.typeof(args[1]) ~= "number" then
+        return false, "[/] expected a number but received [1]: '" .. tools.typeof(args[1]) .. "'"
     end
-    if _local.typeof(args[2]) ~= "number" then
-        return false, "[/] expected a number but received [2]: '" .. _local.typeof(args[2]) .. "'"
+    if tools.typeof(args[2]) ~= "number" then
+        return false, "[/] expected a number but received [2]: '" .. tools.typeof(args[2]) .. "'"
     end
     local ok, result, msg = pcall(function()
         return args[1] / args[2]
@@ -2142,14 +2064,14 @@ end
 
 runtime["%"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
-    if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
+    if tools.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
     end
-    if _local.typeof(args[1]) ~= "number" then
-        return false, "[%] expected a number but received [1]: '" .. _local.typeof(args[1]) .. "'"
+    if tools.typeof(args[1]) ~= "number" then
+        return false, "[%] expected a number but received [1]: '" .. tools.typeof(args[1]) .. "'"
     end
-    if _local.typeof(args[2]) ~= "number" then
-        return false, "[%] expected a number but received [2]: '" .. _local.typeof(args[2]) .. "'"
+    if tools.typeof(args[2]) ~= "number" then
+        return false, "[%] expected a number but received [2]: '" .. tools.typeof(args[2]) .. "'"
     end
     local ok, result, msg = pcall(function()
         return args[1] % args[2]
@@ -2163,20 +2085,20 @@ runtime["lorem"] = function(args, utils)
 end
 
 runtime["date"] = function(args, utils)
-    return true, string.split(os.date("%d/%m/%Y", os.time()), "/")
+    return true, utilsModule.split(os.date("%d/%m/%Y", os.time()), "/")
 end
 
 runtime["time"] = function(args, utils)
-    return true, string.split(os.date("%H:%M:%S", os.time()), ":")
+    return true, utilsModule.split(os.date("%H:%M:%S", os.time()), ":")
 end
 runtime["random"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 	if type(args[1]) ~= "number" then
-		return false, "[random] expected a number but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[random] expected a number but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 	if type(args[2]) ~= "number" then
-		return false, "[random] expected a number but received [2]: '" .. _local.typeof(args[2]) .. "'"
+		return false, "[random] expected a number but received [2]: '" .. tools.typeof(args[2]) .. "'"
 	end
 	local success, result, msg = pcall(function()
 		return math.random(args[1], args[2])
@@ -2186,31 +2108,31 @@ runtime["random"] = function(args, utils)
 end
 runtime["lerp"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
-    if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
+    if tools.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
     end
-    if _local.typeof(args[1]) ~= "number" then
-        return false, "[lerp] expected a number but received [1]: '" .. _local.typeof(args[1]) .. "'"
+    if tools.typeof(args[1]) ~= "number" then
+        return false, "[lerp] expected a number but received [1]: '" .. tools.typeof(args[1]) .. "'"
     end
-    if _local.typeof(args[2]) ~= "number" then
-        return false, "[lerp] expected a number but received [2]: '" .. _local.typeof(args[2]) .. "'"
+    if tools.typeof(args[2]) ~= "number" then
+        return false, "[lerp] expected a number but received [2]: '" .. tools.typeof(args[2]) .. "'"
     end
-    if _local.typeof(args[3]) ~= "number" then
-        return false, "[lerp] expected a number but received [3]: '" .. _local.typeof(args[3]) .. "'"
+    if tools.typeof(args[3]) ~= "number" then
+        return false, "[lerp] expected a number but received [3]: '" .. tools.typeof(args[3]) .. "'"
     end
     local ok, result, msg = pcall(function()
-        return _local.lerp(args[1], args[2], args[3])
+        return tools.lerp(args[1], args[2], args[3])
     end)
     if not ok then return {false, msg or "something unexpected happened during the lerp"} end
     return true, result
 end
 runtime["floor"] = function(args, utils)
     args = _local.resolveArgs(args, utils)
-    if _local.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
+    if tools.typeof(args) == "list" and args[1] == "_!!dDecodePSCFail!!_" then 
         return false, args[2] 
     end
-    if _local.typeof(args[1]) ~= "number" then
-        return false, "[floor] expected a number but received [1]: '" .. _local.typeof(args[1]) .. "'"
+    if tools.typeof(args[1]) ~= "number" then
+        return false, "[floor] expected a number but received [1]: '" .. tools.typeof(args[1]) .. "'"
     end
     local ok, result, msg = pcall(function()
         return math.floor(args[1])
@@ -2223,7 +2145,7 @@ runtime["abs"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 	if type(args[1]) ~= "number" then
-		return false, "[abs] expected a number but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[abs] expected a number but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 	local success, result, msg = pcall(function()
 		return math.abs(args[1])
@@ -2235,7 +2157,7 @@ runtime["sin"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 	if type(args[1]) ~= "number" then
-		return false, "[sin] expected a number but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[sin] expected a number but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 	local success, result, msg = pcall(function()
 		return math.sin(args[1])
@@ -2247,7 +2169,7 @@ runtime["cos"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 	if type(args[1]) ~= "number" then
-		return false, "[cos] expected a number but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[cos] expected a number but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 	local success, result, msg = pcall(function()
 		return math.cos(args[1])
@@ -2259,7 +2181,7 @@ runtime["acos"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 	if type(args[1]) ~= "number" then
-		return false, "[acos] expected a number but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[acos] expected a number but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 	local success, result, msg = pcall(function()
 		return math.acos(args[1])
@@ -2271,7 +2193,7 @@ runtime["asin"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 	if type(args[1]) ~= "number" then
-		return false, "[asin] expected a number but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[asin] expected a number but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 	local success, result, msg = pcall(function()
 		return math.asin(args[1])
@@ -2283,7 +2205,7 @@ runtime["atan"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 	if type(args[1]) ~= "number" then
-		return false, "[atan] expected a number but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[atan] expected a number but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 	local success, result, msg = pcall(function()
 		return math.atan(args[1])
@@ -2295,10 +2217,10 @@ runtime["atan2"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 	if type(args[1]) ~= "number" then
-		return false, "[atan] expected a number but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[atan] expected a number but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 	if type(args[2]) ~= "number" then
-		return false, "[atan] expected a number but received [2]: '" .. _local.typeof(args[2]) .. "'"
+		return false, "[atan] expected a number but received [2]: '" .. tools.typeof(args[2]) .. "'"
 	end
 	local success, result, msg = pcall(function()
 		return math.atan2(args[1], args[2])
@@ -2311,7 +2233,7 @@ runtime["ceil"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 	if type(args[1]) ~= "number" then
-		return false, "[ceil] expected a number but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[ceil] expected a number but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 	local success, result, msg = pcall(function()
 		return math.ceil(args[1])
@@ -2323,7 +2245,7 @@ runtime["log10"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 	if type(args[1]) ~= "number" then
-		return false, "[log10] expected a number but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[log10] expected a number but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 	local success, result, msg = pcall(function()
 		return math.log10(args[1])
@@ -2335,7 +2257,7 @@ runtime["randomseed"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 	if type(args[1]) ~= "number" then
-		return false, "[randomseed] expected a number but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[randomseed] expected a number but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 	local success, result, msg = pcall(function()
 		return math.randomseed(args[1])
@@ -2347,7 +2269,7 @@ runtime["deg"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 	if type(args[1]) ~= "number" then
-		return false, "[deg] expected a number but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[deg] expected a number but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 	local success, result, msg = pcall(function()
 		return math.deg(args[1])
@@ -2359,7 +2281,7 @@ runtime["sqrt"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 	if type(args[1]) ~= "number" then
-		return false, "[sqrt] expected a number but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[sqrt] expected a number but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 	local success, result, msg = pcall(function()
 		return math.sqrt(args[1])
@@ -2371,7 +2293,7 @@ runtime["tan"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 	if type(args[1]) ~= "number" then
-		return false, "[tan] expected a number but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[tan] expected a number but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 	local success, result, msg = pcall(function()
 		return math.tan(args[1])
@@ -2383,7 +2305,7 @@ runtime["rad"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 	if type(args[1]) ~= "number" then
-		return false, "[rad] expected a number but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[rad] expected a number but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 	local success, result, msg = pcall(function()
 		return math.rad(args[1])
@@ -2395,10 +2317,10 @@ runtime["log"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 	if type(args[1]) ~= "number" then
-		return false, "[log] expected a number but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[log] expected a number but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 	if type(args[1]) ~= "number" then
-		return false, "[log] expected a number but received [2]: '" .. _local.typeof(args[2]) .. "'"
+		return false, "[log] expected a number but received [2]: '" .. tools.typeof(args[2]) .. "'"
 	end
 	local success, result, msg = pcall(function()
 		return math.log(args[1], args[2])
@@ -2410,13 +2332,13 @@ runtime["noise"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 	if type(args[1]) ~= "number" then
-		return false, "[noise] expected a number but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[noise] expected a number but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 	if type(args[1]) ~= "number" then
-		return false, "[noise] expected a number but received [2]: '" .. _local.typeof(args[2]) .. "'"
+		return false, "[noise] expected a number but received [2]: '" .. tools.typeof(args[2]) .. "'"
 	end
 	if type(args[1]) ~= "number" then
-		return false, "[noise] expected a number but received [3]: '" .. _local.typeof(args[3]) .. "'"
+		return false, "[noise] expected a number but received [3]: '" .. tools.typeof(args[3]) .. "'"
 	end
 	local success, result, msg = pcall(function()
 		return math.noise(args[1], args[2], args[3])
@@ -2428,7 +2350,7 @@ runtime["sign"] = function(args, utils)
 	args = _local.resolveArgs(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 	if type(args[1]) ~= "number" then
-		return false, "[sign] expected a number but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[sign] expected a number but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 
 	if args[1] == 0 then
@@ -2446,7 +2368,7 @@ runtime["inv"] = function(args, utils)
 
 	for i, v in args do
 		if type(v) ~= "number" then
-			return false, "[inv] expected a number but received [".. tostring(i) .."]: '" .. _local.typeof(v) .. "'"
+			return false, "[inv] expected a number but received [".. tostring(i) .."]: '" .. tools.typeof(v) .. "'"
 		end
 
 		numbers[i] = v * -1
@@ -2472,7 +2394,7 @@ runtime["json-decode"] = function(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 	
 	local success, result, msg = pcall(function()
-		return jsonObjToTable(args[1])
+		return tools.jsonObjToTable(args[1])
 	end)
 	if not success then return false, msg or "decode error." end
 	return true, result
@@ -2485,18 +2407,18 @@ runtime["http-get"] = function(args, utils)
         return false, args[2]
     end
     if type(args[1]) ~= "string" then
-        return false, "[http-get] [url] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+        return false, "[http-get] [url] expected a string but received [1]: '" .. tools.typeof(args[1]) .. "'"
     end
     if args[2] and type(args[3]) ~= "table" then
-        return false, "[http-get] [headers] expected a table but received [3]: '" .. _local.typeof(args[3]) .. "'"
+        return false, "[http-get] [headers] expected a table but received [3]: '" .. tools.typeof(args[3]) .. "'"
     end
     if string.sub(args[1], 1, 7) ~= "http://" and string.sub(args[1], 1, 8) ~= "https://" then
         return false, "[http-get] expected a valid URL, expected http:// or https://, received [1]: '" .. args[1] .. "'"
     end
 
     -- Criar um log único para a resposta
-    local logID = tostring(#fs.list(script_dir .. "/" .. temporary.paths.http))
-    local file = script_dir .. "/" .. temporary.paths.http .. "/" .. logID
+    local logID = tostring(#fs.list(tools.globals.dir .. "/" .. tools.globals.temporary.paths.http))
+    local file = tools.globals.dir .. "/" .. tools.globals.temporary.paths.http .. "/" .. logID
 
     -- Monta os cabeçalhos (headers)
     local header_cmd = ""
@@ -2546,18 +2468,18 @@ runtime["http-post"] = function(args, utils)
         return false, args[2]
     end
     if type(args[1]) ~= "string" then
-        return false, "[http-post] [url] expected a string but received [1]: '" .. _local.typeof(args[1]) .. "'"
+        return false, "[http-post] [url] expected a string but received [1]: '" .. tools.typeof(args[1]) .. "'"
     end
     if args[3] and type(args[3]) ~= "table" then
-        return false, "[http-post] [headers] expected a table but received [3]: '" .. _local.typeof(args[3]) .. "'"
+        return false, "[http-post] [headers] expected a table but received [3]: '" .. tools.typeof(args[3]) .. "'"
     end
     if string.sub(args[1], 1, 7) ~= "http://" and string.sub(args[1], 1, 8) ~= "https://" then
         return false, "[http-post] expected a valid URL, expected http:// or https://, received [1]: '" .. args[1] .. "'"
     end
 
     -- Criar um log único para a resposta
-    local logID = tostring(#fs.list(script_dir .. "/" .. temporary.paths.http))
-    local file = script_dir .. "/" .. temporary.paths.http .. "/" .. logID
+    local logID = tostring(#fs.list(tools.globals.dir .. "/" .. tools.globals.temporary.paths.http))
+    local file = tools.globals.dir .. "/" .. tools.globals.temporary.paths.http .. "/" .. logID
 
     -- Monta os cabeçalhos (headers)
     local header_cmd = ""
@@ -2635,7 +2557,7 @@ runtime["object"] = function(args, utils)
 		local valueData = args[i+1]
 
 		if type(indexName) ~= "string" then
-			return false, "[object] expected a string for index names but received [" .. tostring(run) .. "]: '" .. _local.typeof(indexName) .. "'"
+			return false, "[object] expected a string for index names but received [" .. tostring(run) .. "]: '" .. tools.typeof(indexName) .. "'"
 		end
 
 		result[indexName] = valueData
@@ -2652,7 +2574,7 @@ runtime["odd?"] = function(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
 	if type(args[1]) ~= "number" then
-		return false, "[odd] expected a number but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[odd] expected a number but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 
 	return true, args[1] % 2 == 0
@@ -2662,7 +2584,7 @@ runtime["even?"] = function(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
 	if type(args[1]) ~= "number" then
-		return false, "[even] expected a number but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[even] expected a number but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 
 	return true, args[1] % 2 ~= 0
@@ -2696,10 +2618,10 @@ runtime["filter"] = function(args, utils)
 	if type(args) == "table" and args[1] == "_!!dDecodePSCFail!!_" then return false, args[2] end
 
 	if type(args[1]) ~= "table" then
-		return false, "[filter] expected a list but received [1]: '" .. _local.typeof(args[1]) .. "'"
+		return false, "[filter] expected a list but received [1]: '" .. tools.typeof(args[1]) .. "'"
 	end
 	if type(args[2]) ~= "string" then
-		return false, "[filter] expected a function name as a string but received [2]: '" .. _local.typeof(args[2]) .. "'"
+		return false, "[filter] expected a function name as a string but received [2]: '" .. tools.typeof(args[2]) .. "'"
 	end
 
 	local togo;
@@ -2708,7 +2630,7 @@ runtime["filter"] = function(args, utils)
         
 		for i, v in pairs(args[1]) do
 			if type(v) == "table" then
-				v = _local.tableToString(v)
+				v = tools.tableToString(v)
 			end
 			local returns = require("src.core"):run("(" .. args[2] .. " " .. tostring(v) .. ")", nil, true)
 
@@ -2716,7 +2638,7 @@ runtime["filter"] = function(args, utils)
 				return false, "[filter] [2] function: "  .. (returns[2] or "")
 			end
 			if type(returns[2]) ~= "boolean" then
-				local addition = _local.typeof(returns[2])
+				local addition = tools.typeof(returns[2])
 
 				if type(returns[2]) == "string" then
 					addition = returns[2]
@@ -2732,6 +2654,15 @@ runtime["filter"] = function(args, utils)
 	end
 
 	return true, togo
+end
+
+-- cobalt debug commands
+runtime["cobalt_temp_size"] = function(args, utils) -- uh.. idk
+    return true, {
+        tools.globals.temporary.size.funcs(),
+        tools.globals.temporary.size.http(),
+        tools.globals.temporary.size.variables()
+    }
 end
 
 return runtime

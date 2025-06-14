@@ -1,15 +1,19 @@
 local fs = {}
 
+-- loads the custom luafs so or dll (i guesssss)
+
 local folder = ""
 local success, _ = pcall(function()
   local path = debug.getinfo(1, "S").source:sub(2)--:gsub("\\", "/")
   folder = path:match("(.*\\)") or ".\\"
 
-  package.cpath = package.cpath .. ";" .. folder .. "..\\modules\\?.dll;"
+  package.cpath = package.cpath .. ";" .. folder .. "../modules/?.dll;"
+  package.cpath = package.cpath .. ";" .. folder .. "../modules/?.so;"
 end)
 
 if not success then
-  package.cpath = package.cpath .. ";..\\modules\\?.dll;"
+  package.cpath = package.cpath .. ";../modules/?.dll;"
+  package.cpath = package.cpath .. ";../modules/?.so;"
 end
 
 local lfs = require("luafs")
